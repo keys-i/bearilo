@@ -1,0 +1,18 @@
+<type>: <short summary>
+
+<body: what changed and why>
+
+<footer: breaking changes, issue refs, etc>
+
+# Types:
+#   feat      New feature
+#   fix       Bug fix
+#   docs      Documentation only
+#   style     Formatting only, no code behaviour change
+#   refactor  Code change that is not a feature or fix
+#   perf      Performance improvement
+#   test      Add or update tests
+#   build     Build system or dependency changes
+#   ci        CI/CD changes
+#   chore     Maintenance
+#   revert    Revert a previous commit

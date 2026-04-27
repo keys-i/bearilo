@@ -1,0 +1,54 @@
+# === OS/IDE-specific files ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.#*
+
+# --- OS files ---
+.DS_Store
+Thumbs.db
+enthumbs.db
+Desktop.ini
+
+# Local env/config
+.env*
+*.local
+
+# === Project-specific runtime outputs ===
+logs/
+tmp/
+*.wav.tmp
+*.mp3.tmp
+
+# === Cabal / GHC build outputs ===
+dist/
+dist-newstyle/
+cabal-dev/
+*.hi
+*.o
+*.dyn_hi
+*.dyn_o
+*.prof
+*.hp
+*.eventlog
+
+# --- Cabal sandbox ---
+.cabal-sandbox/
+cabal.sandbox.config
+
+# --- Haskell outputs ---
+.ghc.environment.*
+
+# -- HPC / coverage --
+.hpc/
+*.tix
+
+# -- Haddock/docs outputs --
+doc/
+docs/_site/
+*.aux
+*.log
+*.out
+*.toc
