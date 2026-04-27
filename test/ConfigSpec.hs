@@ -34,7 +34,7 @@ spec = do
 
 testDefaultConfigParses :: IO ()
 testDefaultConfigParses = do
-  input <- TextIO.readFile "assets/bearilo.toml"
+  input <- TextIO.readFile "examples/bearilo.toml"
   case parseConfig input of
     Left err -> error ("expected config to parse: " <> show err)
     Right config -> do
@@ -103,12 +103,11 @@ testEmptyFilesRejected = do
     other -> error ("expected NoAudioFiles, got: " <> show other)
 
 testMissingExplicitConfigPath :: IO ()
-testMissingExplicitConfigPath =
-  do
-    result <- resolveConfigPath (Just "missing-config.toml")
-    case result of
-      Left (ConfigPathMissing "missing-config.toml") -> pure ()
-      other -> error ("expected ConfigPathMissing, got: " <> show other)
+testMissingExplicitConfigPath = do
+  result <- resolveConfigPath (Just "missing-config.toml")
+  case result of
+    Left (ConfigPathMissing "missing-config.toml") -> pure ()
+    other -> error ("expected ConfigPathMissing, got: " <> show other)
 
 testCliVariationSingleValue :: IO ()
 testCliVariationSingleValue =
@@ -158,10 +157,7 @@ testDefaultPresetMerge = do
             configSoundPresets = [preset]
           }
 
-      options =
-        defaultCliOptions
-
-  case mergeConfig options config of
+  case mergeConfig defaultCliOptions config of
     Right appConfig
       | appPresets appConfig == [preset] -> pure ()
     other -> error ("expected default preset merge, got: " <> show other)

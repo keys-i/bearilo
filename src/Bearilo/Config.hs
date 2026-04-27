@@ -62,18 +62,22 @@ data TomlDocument = TomlDocument
   deriving stock (Eq, Show)
 
 parseConfig :: Text -> Either ConfigError Config
-parseConfig = decodeBeariloToml
+parseConfig input =
+  case parse tomlDocument "bearilo config" input of
+    Left err -> Left (ConfigParseError (show err))
+    Right document -> decodeDocument document
 
 validateConfig :: Config -> Either ConfigError ValidConfig
 validateConfig config = do
   traverse_ validatePreset (configSoundPresets config)
   pure (ValidConfig config)
-
-validatePreset :: SoundPreset -> Either ConfigError ()
-validatePreset preset =
-  traverse_ validateKeyConfig (presetKeyConfigs preset)
   where
-    validateKeyConfig keyConfig =
+    validatePreset :: SoundPreset -> Either ConfigError ()
+    validatePreset preset =
+      traverse_ (validateKeyConfig preset) (presetKeyConfigs preset)
+
+    validateKeyConfig :: SoundPreset -> KeyConfig -> Either ConfigError ()
+    validateKeyConfig preset keyConfig =
       case keyConfigFiles keyConfig of
         [] -> Left (NoAudioFiles (Text.unpack (presetName preset)))
         _ -> Right ()
@@ -92,12 +96,12 @@ resolveConfigPath Nothing = do
       configDir </> "daktilo" </> "bearilo.toml",
       configDir </> "daktilo" </> "config"
     ]
-
-firstExisting :: [FilePath] -> IO (Either ConfigError FilePath)
-firstExisting [] = pure (Left (ConfigPathMissing "bearilo.toml"))
-firstExisting (path : rest) = do
-  exists <- doesFileExist path
-  if exists then pure (Right path) else firstExisting rest
+  where
+    firstExisting :: [FilePath] -> IO (Either ConfigError FilePath)
+    firstExisting [] = pure (Left (ConfigPathMissing "bearilo.toml"))
+    firstExisting (path : rest) = do
+      exists <- doesFileExist path
+      if exists then pure (Right path) else firstExisting rest
 
 mergeConfig :: CliOptions -> Config -> Either ConfigError AppConfig
 mergeConfig options config = do
@@ -134,12 +138,6 @@ parsePlaybackStrategy value
   | value == Text.pack "random" = Right Random
   | value == Text.pack "sequential" = Right Sequential
   | otherwise = Left (InvalidPlaybackStrategy (Text.unpack value))
-
-decodeBeariloToml :: Text -> Either ConfigError Config
-decodeBeariloToml input =
-  case parse tomlDocument "bearilo config" input of
-    Left err -> Left (ConfigParseError (show err))
-    Right document -> decodeDocument document
 
 decodeDocument :: TomlDocument -> Either ConfigError Config
 decodeDocument document = do

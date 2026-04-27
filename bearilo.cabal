@@ -58,16 +58,18 @@ extra-doc-files:    CHANGELOG.md
 -- Extra source files to be distributed with the package, such as examples, or a tutorial module.
 extra-source-files:
     README.md
-    assets/bearilo.toml
+    assets/sounds/*.mp3
     bridge/linux.h
     bridge/darwin.h
     bridge/windows.h
+    examples/bearilo.toml
 
 common warnings
     -- Base language which the package is written in.
     default-language: GHC2021
     default-extensions:
         DerivingStrategies
+        TemplateHaskell
     ghc-options:
         -Wall
         -Wcompat
@@ -109,8 +111,10 @@ library
     -- Other library packages from which modules are imported.
     build-depends:
         base ^>=4.17.2.1,
+        bytestring,
         directory,
         filepath,
+        file-embed,
         parsec,
         text
 
@@ -180,6 +184,7 @@ test-suite bearilo-test
     build-depends:
         base ^>=4.17.2.1,
         bearilo,
+        bytestring,
         directory,
         filepath,
         text
