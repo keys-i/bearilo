@@ -77,6 +77,10 @@ common warnings
         -Wpartial-fields
         -Wredundant-constraints
 
+    if os(darwin)
+        ghc-options:
+            -optl-Wl,-no_warn_duplicate_libraries
+
 library
     -- Import common warning flags.
     import:           warnings
@@ -104,7 +108,11 @@ library
 
     -- Other library packages from which modules are imported.
     build-depends:
-        base ^>=4.17.2.1
+        base ^>=4.17.2.1,
+        directory,
+        filepath,
+        parsec,
+        text
 
     -- Linux C keyboard hook bridge.
     if os(linux)
@@ -173,7 +181,8 @@ test-suite bearilo-test
         base ^>=4.17.2.1,
         bearilo,
         directory,
-        filepath
+        filepath,
+        text
 
     -- Directories containing test source files.
     hs-source-dirs:   test
