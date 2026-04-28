@@ -14,8 +14,9 @@ import Bearilo.Types
 import Control.Monad (void)
 import Data.Foldable (traverse_)
 import Data.List (find)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
-import qualified Data.Text as Text
+import Data.Text qualified as Text
 import System.Directory
   ( XdgDirectory (XdgConfig),
     doesFileExist,
@@ -356,7 +357,7 @@ tomlNumber =
     sign <- optionMaybe (char '-')
     whole <- many1 digit
     fractional <- optionMaybe ((:) <$> char '.' <*> many1 digit)
-    let raw = maybe "" pure sign <> whole <> maybe "" id fractional
+    let raw = maybe "" pure sign <> whole <> fromMaybe "" fractional
     pure (read raw)
 
 tomlArray :: Parser [TomlValue]

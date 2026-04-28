@@ -52,6 +52,8 @@ data KeyConfig = KeyConfig
 data KeyEvent
   = KeyPress
   | KeyRelease
+  | KeyPressed Text
+  | KeyReleased Text
   deriving stock (Eq, Show)
 
 data AudioFile = AudioFile

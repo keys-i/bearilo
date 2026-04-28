@@ -41,9 +41,8 @@ bearilo/
 │   ├── windows.c
 │   └── windows.h
 ├── assets/
+│   ├── bearilo.toml
 │   └── sounds/
-├── examples/
-│   └── bearilo.toml
 └── test/
     ├── Main.hs
     ├── ConfigSpec.hs
@@ -79,13 +78,13 @@ bearilo/
 | `bridge/Darwin.h`            | DarwinOS C hook header.                               |
 | `bridge/windows.c`           | Windows C hook implementation.                        |
 | `bridge/windows.h`           | Windows C hook header.                                |
-| `examples/bearilo.toml`      | Embedded default config copied from source.           |
+| `config/bearilo.toml`        | Embedded default config copied from source.           |
 | `assets/sounds/`             | Embedded MP3 assets copied from source.               |
 | `test/*Spec.hs`              | Focused Hspec tests.                                  |
 
 ## Source facts
 
-> **Source mismatch:** README lists preset `spark`, but `examples/bearilo.toml` defines `sparks`. Use `sparks` unless code proves otherwise.
+> **Source mismatch:** README lists preset `spark`, but `config/bearilo.toml` defines `sparks`. Use `sparks` unless code proves otherwise.
 
 | Area              | Fact                                                                                                                                                                                                      | Source                                                                                                                                                                                                              |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -93,12 +92,12 @@ bearilo/
 | CLI flags         | CLI options are `--verbose`, `--preset`, `--list-presets`, `--list-devices`, `--device`, `--config`, `--init`, hidden `--no-surprises`, `--variate-volume`, `--variate-tempo`, `--help`, and `--version`. | `crates/daktilo/src/args.rs`, `README.md`                                                                                                                                                                           |
 | CLI subcommands   | CLI has no subcommands in `Args`.                                                                                                                                                                         | `crates/daktilo/src/args.rs`                                                                                                                                                                                        |
 | CLI env           | CLI env names are `VERBOSE`, `PRESET`, `DAKTILO_DEVICE`, `DAKTILO_CONFIG`, `DAKTILO_VOLUME`, and `DAKTILO_TEMPO`.                                                                                         | `crates/daktilo/src/args.rs`, `README.md`                                                                                                                                                                           |
-| Init              | `--init` writes embedded `examples/bearilo.toml` to `bearilo.toml` in the current directory.                                                                                                              | `crates/daktilo/src/main.rs`, `crates/daktilo_lib/src/embed.rs`, `crates/daktilo_lib/src/config.rs`                                                                                                                 |
+| Init              | `--init` writes embedded `config/bearilo.toml` to `bearilo.toml` in the current directory.                                                                                                                | `crates/daktilo/src/main.rs`, `crates/daktilo_lib/src/embed.rs`, `crates/daktilo_lib/src/config.rs`                                                                                                                 |
 | Config path       | Config search order is `<config_dir>/bearilo.toml`, `<config_dir>/daktilo/bearilo.toml`, `<config_dir>/daktilo/config`.                                                                                   | `crates/daktilo_lib/src/config.rs`, `README.md`                                                                                                                                                                     |
 | Config fallback   | Missing selected config path falls back to embedded default config.                                                                                                                                       | `crates/daktilo/src/main.rs`                                                                                                                                                                                        |
-| Config format     | Config format uses TOML `sound_preset`, `name`, `key_config`, `event`, `keys`, `files`, `path`, `volume`, `strategy`, `disabled_keys`, `variation`, and `no_surprises`.                                   | `crates/daktilo_lib/src/config.rs`, `examples/bearilo.toml`, `README.md`                                                                                                                                            |
-| Presets           | Built-in preset names are `default`, `basic`, `musicbox`, `ducktilo`, `drumkit`, and `sparks`.                                                                                                            | `examples/bearilo.toml`                                                                                                                                                                                             |
-| Preset mismatch   | README lists preset `spark`, while default config defines `sparks`.                                                                                                                                       | `README.md`, `examples/bearilo.toml`                                                                                                                                                                                |
+| Config format     | Config format uses TOML `sound_preset`, `name`, `key_config`, `event`, `keys`, `files`, `path`, `volume`, `strategy`, `disabled_keys`, `variation`, and `no_surprises`.                                   | `crates/daktilo_lib/src/config.rs`, `config/bearilo.toml`, `README.md`                                                                                                                                              |
+| Presets           | Built-in preset names are `default`, `basic`, `musicbox`, `ducktilo`, `drumkit`, and `sparks`.                                                                                                            | `config/bearilo.toml`                                                                                                                                                                                               |
+| Preset mismatch   | README lists preset `spark`, while default config defines `sparks`.                                                                                                                                       | `README.md`, `config/bearilo.toml`                                                                                                                                                                                  |
 | Embedded assets   | Embedded sound assets come from `sounds/`; embedded config comes from `config/`.                                                                                                                          | `crates/daktilo_lib/src/embed.rs`                                                                                                                                                                                   |
 | Sound loading     | Sound loading tries embedded bytes by configured path first, then opens the configured path as a file.                                                                                                    | `crates/daktilo_lib/src/app.rs`                                                                                                                                                                                     |
 | Audio sinks       | Audio creates 8 sinks per preset and stops a sink before appending the next sound to it.                                                                                                                  | `crates/daktilo_lib/src/app.rs`                                                                                                                                                                                     |
@@ -165,14 +164,14 @@ bearilo/
 
 - [x] Create `src/Bearilo/Types.hs` types `Config`, `SoundPreset`, `KeyConfig`, `KeyEvent`, `AudioFile`, `PlaybackStrategy`, and `SoundVariation`. Source: `crates/daktilo_lib/src/config.rs`.
 - [x] Create `src/Bearilo/Config.hs` with `parseConfig :: Text -> Either ConfigError Config`. Source: `crates/daktilo_lib/src/config.rs`.
-- [x] Parse TOML `[[sound_preset]]` arrays and `no_surprises` default `False`. Source: `crates/daktilo_lib/src/config.rs`, `examples/bearilo.toml`.
+- [x] Parse TOML `[[sound_preset]]` arrays and `no_surprises` default `False`. Source: `crates/daktilo_lib/src/config.rs`, `config/bearilo.toml`.
 - [x] Parse `event = "press"` and `event = "release"` into `KeyPress` and `KeyRelease`. Source: `crates/daktilo_lib/src/config.rs`, `README.md`.
 - [x] Parse `strategy = "random"` and `strategy = "sequential"` into `Random` and `Sequential`. Source: `crates/daktilo_lib/src/config.rs`, `README.md`.
 - [x] Add `validateConfig :: Config -> Either ConfigError ValidConfig` and reject empty `files` before playback because Rust raises `NoAudioFiles` inside `pick_sound_file`. Source: `crates/daktilo_lib/src/app.rs`.
 - [x] Add `resolveConfigPath :: Maybe FilePath -> IO (Either ConfigError FilePath)` with source search order. Source: `crates/daktilo_lib/src/config.rs`, `README.md`.
 - [x] Return `ConfigPathMissing FilePath` for an explicit missing path because Rust falls back to embedded default for any missing selected path in `crates/daktilo/src/main.rs`. Source: `crates/daktilo/src/main.rs`.
 - [x] Add `mergeConfig :: CliOptions -> Config -> Either ConfigError AppConfig` for presets, device, no-surprises, and variation overrides. Source: `crates/daktilo/src/main.rs`, `crates/daktilo_lib/src/app.rs`.
-- [x] Test `parseConfig` against `examples/bearilo.toml` copied from source config. Source: `examples/bearilo.toml`.
+- [x] Test `parseConfig` against `config/bearilo.toml` copied from source config. Source: `config/bearilo.toml`.
 - [x] Test invalid TOML returns `ConfigParseError`. Source: `crates/daktilo_lib/src/error.rs`.
 - [x] Test missing explicit config path returns `ConfigPathMissing`. Source: `crates/daktilo/src/main.rs`.
 - [x] Test one-value variation CLI input duplicates the value into up and down. Source: `crates/daktilo/src/args.rs`.
@@ -181,14 +180,14 @@ bearilo/
 
 ## v0.3.0 — assets
 
-- [x] Copy source default config to `examples/bearilo.toml`. Source: `examples/bearilo.toml`.
+- [x] Copy source default config to `config/bearilo.toml`. Source: `config/bearilo.toml`.
 - [x] Copy source sound files into `assets/sounds/`: `derase.mp3`, `ding.mp3`, `dspark1.mp3`, `dspark2.mp3`, `dspark3.mp3`, `dspark4.mp3`, `dspark5.mp3`, `dspark6.mp3`, `hat.mp3`, `keydown.mp3`, `keystroke.mp3`, `keyup.mp3`, `kick.mp3`, `mbox1.mp3`, `mbox2.mp3`, `mbox3.mp3`, `mbox4.mp3`, `mbox5.mp3`, `mbox6.mp3`, `mbox7.mp3`, `mbox8.mp3`, `mbox9.mp3`, `mbox10.mp3`, `mbox11.mp3`, `newline.mp3`, `quack1.mp3`, `quack2.mp3`, and `snare.mp3`. Source: `sounds/derase.mp3`, `sounds/ding.mp3`, `sounds/dspark1.mp3`, `sounds/dspark2.mp3`, `sounds/dspark3.mp3`, `sounds/dspark4.mp3`, `sounds/dspark5.mp3`, `sounds/dspark6.mp3`, `sounds/hat.mp3`, `sounds/keydown.mp3`, `sounds/keystroke.mp3`, `sounds/keyup.mp3`, `sounds/kick.mp3`, `sounds/mbox1.mp3`, `sounds/mbox2.mp3`, `sounds/mbox3.mp3`, `sounds/mbox4.mp3`, `sounds/mbox5.mp3`, `sounds/mbox6.mp3`, `sounds/mbox7.mp3`, `sounds/mbox8.mp3`, `sounds/mbox9.mp3`, `sounds/mbox10.mp3`, `sounds/mbox11.mp3`, `sounds/newline.mp3`, `sounds/quack1.mp3`, `sounds/quack2.mp3`, `sounds/snare.mp3`.
 - [x] Create `src/Bearilo/Assets.hs` with `defaultConfigText :: Text`.
 - [x] Create `src/Bearilo/Assets.hs` with `assetManifest :: NonEmpty FilePath`.
 - [x] Create `src/Bearilo/Assets.hs` with `lookupEmbeddedSound :: FilePath -> Maybe ByteString`. Source: `crates/daktilo_lib/src/embed.rs`.
 - [x] Keep embedded sound lookup by configured file name before external file lookup. Source: `crates/daktilo_lib/src/app.rs`.
 - [x] Do not add runtime search paths for embedded sounds because Rust only checks embedded by name and then the configured file path. Source: `crates/daktilo_lib/src/app.rs`.
-- [x] Test every sound path referenced by `examples/bearilo.toml` is present in `assetManifest`. Source: `examples/bearilo.toml`, `sounds/`.
+- [x] Test every sound path referenced by `config/bearilo.toml` is present in `assetManifest`. Source: `config/bearilo.toml`, `sounds/`.
 - [x] Test `lookupEmbeddedSound "ding.mp3"` returns bytes. Source: `sounds/ding.mp3`.
 - [x] Test `lookupEmbeddedSound "missing.mp3"` returns `Nothing`. Source: `crates/daktilo_lib/src/embed.rs`.
 - [x] Test `defaultConfigText` parses with `parseConfig`. Source: `crates/daktilo_lib/src/embed.rs`.
@@ -196,21 +195,22 @@ bearilo/
 
 ## v0.4.0 — audio
 
-- [ ] Create `src/Bearilo/Audio/Types.hs` with `Sound`, `SoundChoice`, `PlaybackState`, `AudioError`, and `OutputDeviceName`.
-- [ ] Create `src/Bearilo/Audio.hs` with `withAudio`, `playSound`, `loadSound`, and `listOutputDevices`.
-- [ ] Create `src/Bearilo/Audio/SDL.hs` using `sdl2` and `sdl2-mixer`.
-- [ ] Allocate 8 concurrent playback channels to match Rust sink count. Source: `crates/daktilo_lib/src/app.rs`.
-- [ ] Implement `listOutputDevices` for output device names. Source: `crates/daktilo_lib/src/audio.rs`, `crates/daktilo/src/main.rs`.
-- [ ] Implement `loadSound` so embedded sound bytes are tried before file path IO. Source: `crates/daktilo_lib/src/app.rs`.
-- [ ] Implement volume default `1.0` and configured volume multiplication. Source: `crates/daktilo_lib/src/app.rs`, `README.md`.
-- [ ] Implement tempo variation in `Bearilo.Audio.SDL.playSound` to match source playback speed variation. Source: `crates/daktilo_lib/src/app.rs`, `README.md`.
-- [ ] Create pure `chooseSound :: RandomSeed -> NonEmpty Sound -> (Sound, RandomSeed)` for random playback. Source: `crates/daktilo_lib/src/app.rs`.
-- [ ] Create pure `soundForEvent :: AppConfig -> KeyEvent -> SoundChoice` for first-match selection. Source: `crates/daktilo_lib/src/app.rs`.
-- [ ] Test missing strategy selects the first configured file. Source: `crates/daktilo_lib/src/app.rs`.
-- [ ] Test random strategy returns an item from the configured non-empty list. Source: `crates/daktilo_lib/src/app.rs`.
-- [ ] Test sequential strategy cycles through configured files. Source: `crates/daktilo_lib/src/app.rs`.
-- [ ] Test variation precedence is CLI, key config, then preset. Source: `crates/daktilo_lib/src/app.rs`.
-- [ ] Acceptance: audio module compiles with SDL and pure sound mapping tests pass without opening an audio device.
+- [x] Create `src/Bearilo/Audio/Types.hs` with `Sound`, `SoundChoice`, `PlaybackState`, `AudioError`, and `OutputDeviceName`.
+- [x] Create `src/Bearilo/Audio.hs` with `withAudio`, `playSound`, `loadSound`, and `listOutputDevices`.
+- [x] Create `src/Bearilo/Audio/SDL.hs` using `sdl2` and `sdl2-mixer`.
+- [x] Allocate 8 concurrent playback channels to match Rust sink count. Source: `crates/daktilo_lib/src/app.rs`.
+- [x] Implement `listOutputDevices` for output device names. Source: `crates/daktilo_lib/src/audio.rs`, `crates/daktilo/src/main.rs`.
+- [x] Implement `loadSound` so embedded sound bytes are tried before file path IO. Source: `crates/daktilo_lib/src/app.rs`.
+- [x] Implement volume default `1.0` and configured volume multiplication. Source: `crates/daktilo_lib/src/app.rs`, `README.md`.
+- [x] Implement playback-rate variation by resampling decoded PCM before SDL_mixer playback.
+- [x] Create pure `chooseRandom :: RandomSeed -> NonEmpty Sound -> (Sound, RandomSeed)` for random playback. Source: `crates/daktilo_lib/src/app.rs`.
+- [x] Create pure `soundForEvent :: AppConfig -> KeyEvent -> SoundChoice` for first-match selection. Source: `crates/daktilo_lib/src/app.rs`.
+- [x] Test missing strategy selects the first configured file. Source: `crates/daktilo_lib/src/app.rs`.
+- [x] Test random strategy returns an item from the configured non-empty list. Source: `crates/daktilo_lib/src/app.rs`.
+- [x] Test sequential strategy cycles through configured files. Source: `crates/daktilo_lib/src/app.rs`.
+- [x] Test variation precedence is CLI, key config, then preset. Source: `crates/daktilo_lib/src/app.rs`.
+- [x] Acceptance: audio module compiles with SDL and pure sound mapping tests pass without opening an audio device.
+- [ ] Optional: implement pitch-preserving tempo with SoundTouch or another DSP backend.
 
 ## v0.5.0 — keyboard input
 
@@ -242,7 +242,7 @@ bearilo/
 - [ ] Implement key press suppression until release. Source: `crates/daktilo_lib/src/app.rs`.
 - [ ] Implement key release playback when a release config matches. Source: `crates/daktilo_lib/src/app.rs`.
 - [ ] Implement hidden `ak47` preset behaviour and `no_surprises` random-disable behaviour exactly as source. Source: `crates/daktilo_lib/src/config.rs`, `crates/daktilo/src/main.rs`, `README.md`.
-- [ ] Document `sparks`, not `spark`, because exact preset lookup uses config names and config defines `sparks`. Source: `crates/daktilo_lib/src/config.rs`, `examples/bearilo.toml`, `README.md`.
+- [ ] Document `sparks`, not `spark`, because exact preset lookup uses config names and config defines `sparks`. Source: `crates/daktilo_lib/src/config.rs`, `config/bearilo.toml`, `README.md`.
 - [ ] Add integration tests for `--help`, `--init`, `--list-presets`, missing preset, default preset merge, and explicit config path. Source: `crates/daktilo/src/main.rs`, `crates/daktilo/src/args.rs`.
 - [ ] Add integration tests for press, repeated press before release, release, disabled key, random strategy, and sequential strategy. Source: `crates/daktilo_lib/src/app.rs`.
 - [ ] Acceptance: CLI, config, sound choice, and key event behaviour match inspected source except limitations removed in v0.7.0.
@@ -261,7 +261,7 @@ bearilo/
 - [ ] Return `OsHookError` from listener startup because `expect("could not listen events")` can panic inside `crates/daktilo_lib/src/lib.rs`.
 - [ ] Add embedded sound manifest tests because only embedded config parse is tested in `crates/daktilo_lib/src/embed.rs`.
 - [ ] Replace stale audio feature tests because `crates/daktilo_lib/src/app.rs` tests call old fields and old `App::init` shape.
-- [ ] Fix preset docs to use `sparks` because README lists `spark` while `examples/bearilo.toml` defines `sparks`.
+- [ ] Fix preset docs to use `sparks` because README lists `spark` while `config/bearilo.toml` defines `sparks`.
 - [ ] Test each removed limitation with a focused Hspec example in `test/LimitationSpec.hs`.
 - [ ] Acceptance: every limitation listed in `## Original daktilo limitations` has a failing regression test before the fix and a passing test after the fix.
 
@@ -285,7 +285,7 @@ bearilo/
 - [ ] Run manual test `cabal run bearilo -- --init` and verify `bearilo.toml` is written. Source: `crates/daktilo/src/main.rs`.
 - [ ] Run manual test `cabal run bearilo -- --list-presets`. Source: `crates/daktilo/src/main.rs`.
 - [ ] Run manual test `cabal run bearilo -- --list-devices`. Source: `crates/daktilo/src/main.rs`, `crates/daktilo_lib/src/audio.rs`.
-- [ ] Run manual test for `default`, `basic`, `musicbox`, `ducktilo`, `drumkit`, and `sparks`. Source: `examples/bearilo.toml`.
+- [ ] Run manual test for `default`, `basic`, `musicbox`, `ducktilo`, `drumkit`, and `sparks`. Source: `config/bearilo.toml`.
 - [ ] Run manual test for `--config <PATH>` with valid config and invalid config. Source: `README.md`, `crates/daktilo_lib/src/config.rs`.
 - [ ] Run manual test for `--variate-volume` and `--variate-tempo` with one value and two values. Source: `crates/daktilo/src/args.rs`.
 - [ ] Run manual test for `--no-surprises` and `--preset ak47`. Source: `crates/daktilo/src/args.rs`, `crates/daktilo_lib/src/config.rs`.
@@ -309,7 +309,7 @@ bearilo/
 | Listener startup can panic.                                                | `crates/daktilo_lib/src/lib.rs`    | Return `OsHookError` from listener startup.                                |
 | Embedded sounds are not checked by tests.                                  | `crates/daktilo_lib/src/embed.rs`  | Add embedded sound manifest tests.                                         |
 | Feature-gated audio tests are stale.                                       | `crates/daktilo_lib/src/app.rs`    | Replace with current pure and integration tests.                           |
-| README preset table names `spark`, but config defines `sparks`.            | `README.md`, `examples/bearilo.toml` | Document and test `sparks`.                                              |
+| README preset table names `spark`, but config defines `sparks`.            | `README.md`, `config/bearilo.toml` | Document and test `sparks`.                                                |
 
 ## Haskell design rules
 
