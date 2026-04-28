@@ -1,9 +1,9 @@
 #include "windows.h"
 
-int windows_start(void) {
+int bearilo_windows_start_listener(void) {
     return 0;
 }
 
-int windows_stop(void) {
+int bearilo_windows_stop_listener(void) {
     return 0;
 }

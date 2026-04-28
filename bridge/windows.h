@@ -1,7 +1,7 @@
 #ifndef BEARILO_WINDOWS_H
 #define BEARILO_WINDOWS_H
 
-int darwin_start(void);
-int darwin_stop(void);
+int bearilo_windows_start_listener(void);
+int bearilo_windows_stop_listener(void);
 
 #endif

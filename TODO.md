@@ -214,20 +214,35 @@ bearilo/
 
 ## v0.5.0 — keyboard input
 
-- [ ] Create `src/Bearilo/Os/Types.hs` with `RawKeyEvent`, `RawKeyState`, `RawKeyName`, and `OsHookError`.
-- [ ] Create `src/Bearilo/Os.hs` with `withKeyListener :: (RawKeyEvent -> IO ()) -> IO a -> IO (Either OsHookError a)`.
-- [ ] Put Linux FFI imports only in `src/Bearilo/Os/Linux.hs`; matching C files are `bridge/linux.c` and `bridge/linux.h`.
-- [ ] Put DarwinOS FFI imports only in `src/Bearilo/Os/Darwin.hs`; matching C files are `bridge/Darwin.c` and `bridge/Darwin.h`.
-- [ ] Put Windows FFI imports only in `src/Bearilo/Os/Windows.hs`; matching C files are `bridge/windows.c` and `bridge/windows.h`.
-- [ ] Expose start and stop listener functions only from `bridge/linux.c`, `bridge/Darwin.c`, and `bridge/windows.c`.
-- [ ] Keep C headers limited to `bridge/linux.h`, `bridge/Darwin.h`, and `bridge/windows.h`.
-- [ ] Add Cabal `if os(linux)` section with `c-sources: bridge/linux.c`.
-- [ ] Add Cabal `if os(darwin)` section with `c-sources: bridge/Darwin.c`.
-- [ ] Add Cabal `if os(windows)` section with `c-sources: bridge/windows.c`.
-- [ ] Create `src/Bearilo/Input.hs` with `classifyKeyEvent :: RawKeyEvent -> Maybe KeyEvent`. Source: `crates/daktilo_lib/src/app.rs`.
-- [ ] Test raw press converts to app `KeyPress` and raw release converts to app `KeyRelease`. Source: `crates/daktilo_lib/src/app.rs`.
-- [ ] Test non-key raw events convert to `Nothing`. Source: `crates/daktilo_lib/src/app.rs`.
-- [ ] Acceptance: no module except `Bearilo.Os.Linux`, `Bearilo.Os.Darwin`, and `Bearilo.Os.Windows` imports C functions.
+- [x] Create `src/Bearilo/Os/Types.hs` with `RawKeyEvent`, `RawKeyState`, `RawKeyName`, and `OsHookError`.
+- [x] Create `src/Bearilo/Os.hs` with `withKeyListener :: (RawKeyEvent -> IO ()) -> IO a -> IO (Either OsHookError a)`.
+- [x] Put Linux FFI imports only in `src/Bearilo/Os/Linux.hs`; matching C files are `bridge/linux.c` and `bridge/linux.h`.
+- [x] Put DarwinOS FFI imports only in `src/Bearilo/Os/Darwin.hs`; matching C files are `bridge/darwin.c` and `bridge/darwin.h`.
+- [x] Put Windows FFI imports only in `src/Bearilo/Os/Windows.hs`; matching C files are `bridge/windows.c` and `bridge/windows.h`.
+- [x] Expose start and stop listener functions only from `bridge/linux.c`, `bridge/darwin.c`, and `bridge/windows.c`.
+- [x] Keep C headers limited to `bridge/linux.h`, `bridge/darwin.h`, and `bridge/windows.h`.
+- [x] Add Cabal `if os(linux)` section with `c-sources: bridge/linux.c`.
+- [x] Add Cabal `if os(darwin)` section with `c-sources: bridge/darwin.c`.
+- [x] Add Cabal `if os(windows)` section with `c-sources: bridge/windows.c`.
+- [x] Create `src/Bearilo/Input.hs` with `classifyKeyEvent :: RawKeyEvent -> Maybe KeyEvent`. Source: `crates/daktilo_lib/src/app.rs`.
+- [x] Test raw press converts to app `KeyPressed` and raw release converts to app `KeyReleased`. Source: `crates/daktilo_lib/src/app.rs`.
+- [x] Test non-key raw events convert to `Nothing`. Source: `crates/daktilo_lib/src/app.rs`.
+- [x] Acceptance: no module except `Bearilo.Os.Linux`, `Bearilo.Os.Darwin`, and `Bearilo.Os.Windows` imports C functions.
+
+## v0.5.1 — real OS keyboard bridge
+
+- [ ] Replace Linux bridge placeholder with real keyboard event capture. Prefer evdev-style raw events unless source or platform constraints prove a better backend.
+- [ ] Replace DarwinOS bridge placeholder with `CGEventTapCreate`-based key press and release capture.
+- [ ] Replace Windows bridge placeholder with `SetWindowsHookExW` using `WH_KEYBOARD_LL`.
+- [ ] Add callback plumbing so C bridge events reach the matching `Bearilo.Os.*` module as `RawKeyEvent`.
+- [ ] Convert platform key codes/names into non-empty `RawKeyName` values inside the matching OS module.
+- [ ] Preserve `RawPressed`, `RawReleased`, and `RawOther` mapping without putting key classification in C.
+- [ ] Keep `Bearilo.App` and `Bearilo.Input` free of FFI imports.
+- [ ] Return explicit `OsHookError` values for listener start, stop, and callback failures.
+- [ ] Keep bridge headers limited to start/stop listener API plus the minimum callback type needed for event delivery.
+- [ ] Add tests for pure platform event conversion where possible without requiring a real global keyboard hook.
+- [ ] Add manual test notes for Linux, DarwinOS Input Monitoring, and Windows hook startup.
+- [ ] Acceptance: real platform bridges can produce `RawKeyEvent` values through `withKeyListener`, while CI tests do not require global keyboard permissions.
 
 ## v0.6.0 — app behaviour parity
 

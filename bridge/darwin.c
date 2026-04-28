@@ -1,9 +1,9 @@
 #include "darwin.h"
 
-int darwin_start(void) {
+int bearilo_darwin_start_listener(void) {
     return 0;
 }
 
-int darwin_stop(void) {
+int bearilo_darwin_stop_listener(void) {
     return 0;
 }

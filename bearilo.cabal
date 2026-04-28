@@ -20,7 +20,7 @@ name:               bearilo
 -- PVP summary:     +-+------- breaking API changes
 --                  | | +----- non-breaking API additions
 --                  | | | +--- code changes with no API change
-version:            0.3.0.0
+version:            0.5.0.0
 
 -- A short (one-line) description of the package.
 synopsis:
@@ -102,10 +102,7 @@ library
         Bearilo.Error
         Bearilo.Input
         Bearilo.Os
-        Bearilo.Os.Linux
-        Bearilo.Os.Darwin
         Bearilo.Os.Types
-        Bearilo.Os.Windows
         Bearilo.Types
 
     -- Other library packages from which modules are imported.
@@ -122,11 +119,15 @@ library
 
     -- Linux C keyboard hook bridge.
     if os(linux)
+        exposed-modules:
+            Bearilo.Os.Linux
         c-sources:    bridge/linux.c
         include-dirs: bridge
 
     -- Darwin/macOS C keyboard hook bridge.
     if os(darwin)
+        exposed-modules:
+            Bearilo.Os.Darwin
         c-sources:    bridge/darwin.c
         include-dirs: bridge
         frameworks:
@@ -135,6 +136,8 @@ library
 
     -- Windows C keyboard hook bridge.
     if os(windows)
+        exposed-modules:
+            Bearilo.Os.Windows
         c-sources:    bridge/windows.c
         include-dirs: bridge
         extra-libraries:

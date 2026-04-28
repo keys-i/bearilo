@@ -1,9 +1,9 @@
 #include "linux.h"
 
-int linux_start(void) {
+int bearilo_linux_start_listener(void) {
     return 0;
 }
 
-int linux_stop(void) {
+int bearilo_linux_stop_listener(void) {
     return 0;
 }
