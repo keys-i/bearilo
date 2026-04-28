@@ -257,21 +257,21 @@ Manual test notes:
 
 ## v0.6.0 — app behaviour parity
 
-- [ ] Implement `src/Bearilo/Cli.hs` options matching source flags and env names. Source: `crates/daktilo/src/args.rs`, `README.md`.
-- [ ] Keep hidden `--no-surprises` in CLI parser. Source: `crates/daktilo/src/args.rs`.
-- [ ] Implement `App.run` branches for `--init`, `--list-presets`, `--list-devices`, and normal listener mode. Source: `crates/daktilo/src/main.rs`.
-- [ ] Implement `listPresets` output with preset name plus `Event`, `Keys`, and `File` columns. Source: `crates/daktilo/src/main.rs`.
-- [ ] Implement default preset `default` when no preset is supplied. Source: `crates/daktilo/src/main.rs`.
-- [ ] Implement multiple preset playback by creating one app state per selected preset. Source: `crates/daktilo/src/main.rs`, `crates/daktilo_lib/src/lib.rs`.
-- [ ] Implement disabled-key skip before sound selection. Source: `crates/daktilo_lib/src/app.rs`.
-- [ ] Implement key regex matching against source key names. Source: `crates/daktilo_lib/src/app.rs`, `README.md`.
-- [ ] Implement key press suppression until release. Source: `crates/daktilo_lib/src/app.rs`.
-- [ ] Implement key release playback when a release config matches. Source: `crates/daktilo_lib/src/app.rs`.
-- [ ] Implement hidden `ak47` preset behaviour and `no_surprises` random-disable behaviour exactly as source. Source: `crates/daktilo_lib/src/config.rs`, `crates/daktilo/src/main.rs`, `README.md`.
-- [ ] Document `sparks`, not `spark`, because exact preset lookup uses config names and config defines `sparks`. Source: `crates/daktilo_lib/src/config.rs`, `config/bearilo.toml`, `README.md`.
-- [ ] Add integration tests for `--help`, `--init`, `--list-presets`, missing preset, default preset merge, and explicit config path. Source: `crates/daktilo/src/main.rs`, `crates/daktilo/src/args.rs`.
-- [ ] Add integration tests for press, repeated press before release, release, disabled key, random strategy, and sequential strategy. Source: `crates/daktilo_lib/src/app.rs`.
-- [ ] Acceptance: CLI, config, sound choice, and key event behaviour match inspected source except limitations removed in v0.7.0.
+- [x] Implement `src/Bearilo/Cli.hs` options matching source flags and env names. Source: `crates/daktilo/src/args.rs`, `README.md`.
+- [x] Keep hidden `--no-surprises` in CLI parser. Source: `crates/daktilo/src/args.rs`.
+- [x] Implement `App.run` branches for `--init`, `--list-presets`, `--list-devices`, and normal listener mode. Source: `crates/daktilo/src/main.rs`.
+- [x] Implement `listPresets` output with preset name plus `Event`, `Keys`, and `File` columns. Source: `crates/daktilo/src/main.rs`.
+- [x] Implement default preset `default` when no preset is supplied. Source: `crates/daktilo/src/main.rs`.
+- [x] Implement multiple preset playback by creating one app state per selected preset. Source: `crates/daktilo/src/main.rs`, `crates/daktilo_lib/src/lib.rs`.
+- [x] Implement disabled-key skip before sound selection. Source: `crates/daktilo_lib/src/app.rs`.
+- [x] Implement key regex matching against source key names. Source: `crates/daktilo_lib/src/app.rs`, `README.md`.
+- [x] Implement key press suppression until release. Source: `crates/daktilo_lib/src/app.rs`.
+- [x] Implement key release playback when a release config matches. Source: `crates/daktilo_lib/src/app.rs`.
+- [x] Implement hidden `ak47` preset behaviour and `no_surprises` random-disable behaviour exactly as source. Source: `crates/daktilo_lib/src/config.rs`, `crates/daktilo/src/main.rs`, `README.md`.
+- [x] Document `sparks`, not `spark`, because exact preset lookup uses config names and config defines `sparks`. Source: `crates/daktilo_lib/src/config.rs`, `config/bearilo.toml`, `README.md`.
+- [x] Add integration tests for `--help`, `--init`, `--list-presets`, missing preset, default preset merge, and explicit config path. Source: `crates/daktilo/src/main.rs`, `crates/daktilo/src/args.rs`.
+- [x] Add integration tests for press, repeated press before release, release, disabled key, random strategy, and sequential strategy. Source: `crates/daktilo_lib/src/app.rs`.
+- [x] Acceptance: CLI, config, sound choice, and key event behaviour match inspected source except limitations removed in v0.7.0.
 
 > **Limit:** Only remove limitations proven by source files. No guessed cleanup.
 

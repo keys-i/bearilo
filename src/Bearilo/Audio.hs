@@ -38,9 +38,10 @@ import Data.ByteString (ByteString)
 import Data.ByteString qualified as ByteString
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.List.NonEmpty qualified as NonEmpty
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, isNothing)
 import Data.Text qualified as Text
 import System.Directory (doesFileExist)
+import Text.Regex.TDFA ((=~))
 
 withAudio :: (AudioEngine -> IO a) -> IO (Either AudioError a)
 withAudio =
@@ -136,7 +137,7 @@ soundForEvent appConfig event =
       (KeyRelease, observedKeyName)
 
     cliVariation config
-      | appVolumeVariation config == Nothing && appTempoVariation config == Nothing = Nothing
+      | isNothing (appVolumeVariation config) && isNothing (appTempoVariation config) = Nothing
       | otherwise =
           Just
             SoundVariation
@@ -148,7 +149,7 @@ soundForEvent appConfig event =
       observedKeyName `elem` presetDisabledKeys preset
 
     keyMatches pattern observedKeyName =
-      pattern == Text.pack ".*" || pattern == observedKeyName
+      Text.unpack observedKeyName =~ Text.unpack pattern
 
     chooseByStrategy Nothing sounds =
       chooseFirst sounds

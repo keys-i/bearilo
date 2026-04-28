@@ -1,5 +1,8 @@
 module Bearilo.Error (ConfigError (..), AppError (..), renderError) where
 
+import Bearilo.Audio.Types (AudioError)
+import Bearilo.Os.Types (OsHookError)
+
 data ConfigError
   = ConfigParseError String
   | ConfigPathMissing FilePath
@@ -13,10 +16,15 @@ data ConfigError
 
 data AppError
   = AppConfigError ConfigError
+  | AppAudioError AudioError
+  | AppOsHookError OsHookError
   | AppError String
   deriving stock (Eq, Show)
 
 renderError :: AppError -> String
-renderError err = case err of
-  AppConfigError e -> show e
-  AppError message -> message
+renderError err =
+  case err of
+    AppConfigError e -> show e
+    AppAudioError e -> show e
+    AppOsHookError e -> show e
+    AppError message -> message

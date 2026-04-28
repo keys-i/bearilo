@@ -3,8 +3,10 @@ module Bearilo.Types
     SoundPreset (..),
     KeyConfig (..),
     KeyEvent (..),
+    KeyMemory (..),
     AudioFile (..),
     PlaybackStrategy (..),
+    PresetName,
     VariationRange (..),
     SoundVariation (..),
     ValidConfig (..),
@@ -13,6 +15,8 @@ module Bearilo.Types
 where
 
 import Data.Text (Text)
+
+type PresetName = Text
 
 data Config = Config
   { configSoundPresets :: [SoundPreset],
@@ -33,7 +37,7 @@ data AppConfig = AppConfig
   deriving stock (Eq, Show)
 
 data SoundPreset = SoundPreset
-  { presetName :: Text,
+  { presetName :: PresetName,
     presetKeyConfigs :: [KeyConfig],
     presetDisabledKeys :: [Text],
     presetVariation :: Maybe SoundVariation
@@ -54,6 +58,11 @@ data KeyEvent
   | KeyRelease
   | KeyPressed Text
   | KeyReleased Text
+  deriving stock (Eq, Show)
+
+newtype KeyMemory = KeyMemory
+  { pressedKeys :: [Text]
+  }
   deriving stock (Eq, Show)
 
 data AudioFile = AudioFile

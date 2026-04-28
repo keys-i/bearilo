@@ -1,8 +1,11 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module InputSpec (spec) where
 
-import Bearilo.Input (classifyKeyEvent)
+import Bearilo.Input
+  ( classifyKeyEvent,
+    emptyKeyMemory,
+    shouldPlayEvent,
+    updateKeyMemory,
+  )
 import Bearilo.Os.Types
   ( RawKeyEvent (..),
     RawKeyState (..),
@@ -11,7 +14,7 @@ import Bearilo.Os.Types
     rawStateFromCode,
     unRawKeyName,
   )
-import Bearilo.Types (KeyEvent (..))
+import Bearilo.Types (KeyEvent (..), KeyMemory (..))
 
 spec :: IO ()
 spec = do
@@ -25,6 +28,8 @@ spec = do
   testRawPressConverts
   testRawReleaseConverts
   testRawOtherConvertsToNothing
+  testRepeatedPressSuppressed
+  testReleaseAllowsNextPress
 
 testEmptyRawKeyNameRejected :: IO ()
 testEmptyRawKeyNameRejected =
@@ -85,6 +90,23 @@ testRawOtherConvertsToNothing =
     "raw other converts to Nothing"
     Nothing
     (classifyKeyEvent (raw "KeyA" RawOther))
+
+testRepeatedPressSuppressed :: IO ()
+testRepeatedPressSuppressed = do
+  let (firstShouldPlay, afterFirstPress) = shouldPlayEvent emptyKeyMemory (KeyPressed "KeyA")
+      (secondShouldPlay, _) = shouldPlayEvent afterFirstPress (KeyPressed "KeyA")
+
+  assertEqual "first press plays" True firstShouldPlay
+  assertEqual "repeated press before release is suppressed" False secondShouldPlay
+
+testReleaseAllowsNextPress :: IO ()
+testReleaseAllowsNextPress = do
+  let afterPress = updateKeyMemory emptyKeyMemory (KeyPressed "KeyA")
+      afterRelease = updateKeyMemory afterPress (KeyReleased "KeyA")
+      (shouldPlay, _) = shouldPlayEvent afterRelease (KeyPressed "KeyA")
+
+  assertEqual "release clears key memory" (KeyMemory []) afterRelease
+  assertEqual "press after release plays" True shouldPlay
 
 raw :: String -> RawKeyState -> RawKeyEvent
 raw keyName keyState =

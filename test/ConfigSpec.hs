@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module ConfigSpec (spec) where
 
 import Bearilo.Cli (defaultCliOptions, variationFromCliValues)
@@ -8,8 +6,8 @@ import Bearilo.Error
 import Bearilo.Types
 import Control.Exception (finally)
 import Control.Monad (when)
-import qualified Data.Text as Text
-import qualified Data.Text.IO as TextIO
+import Data.Text qualified as Text
+import Data.Text.IO qualified as TextIO
 import System.Directory
   ( createDirectoryIfMissing,
     doesDirectoryExist,

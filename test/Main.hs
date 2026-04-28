@@ -1,17 +1,19 @@
 module Main (main) where
 
-import qualified AssetsSpec
-import qualified AudioSpec
-import qualified ConfigSpec
-import qualified InputSpec
-import qualified LimitSpec
-import qualified PackagingSpec
+import AppSpec qualified
+import AssetsSpec qualified
+import AudioSpec qualified
+import ConfigSpec qualified
+import InputSpec qualified
+import LimitSpec qualified
+import PackagingSpec qualified
 
 main :: IO ()
 main = do
-    ConfigSpec.spec
-    AssetsSpec.spec
-    AudioSpec.spec
-    InputSpec.spec
-    LimitSpec.spec
-    PackagingSpec.spec
+  ConfigSpec.spec
+  AssetsSpec.spec
+  AudioSpec.spec
+  InputSpec.spec
+  AppSpec.spec
+  LimitSpec.spec
+  PackagingSpec.spec
