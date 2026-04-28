@@ -49,7 +49,7 @@ bearilo/
     ├── AssetsSpec.hs
     ├── AudioSpec.hs
     ├── InputSpec.hs
-    ├── LimitationSpec.hs
+    ├── LimitSpec.hs
     └── PackagingSpec.hs
 ```
 
@@ -277,19 +277,19 @@ Manual test notes:
 
 ## v0.7.0 — limitations removed
 
-- [ ] Split CLI parsing, config loading, command dispatch, and app startup because they are mixed in `crates/daktilo/src/main.rs`.
-- [ ] Return `ConfigPathMissing` for an explicit missing config path because fallback to embedded config is used for any missing selected path in `crates/daktilo/src/main.rs`.
-- [ ] Move key classification into pure `Bearilo.Input.classifyKeyEvent` because keyboard event handling and sound playback are mixed in `crates/daktilo_lib/src/app.rs`.
-- [ ] Move random sound selection into pure `Bearilo.Audio.chooseSound` because `fastrand` is called inside `crates/daktilo_lib/src/app.rs`.
-- [ ] Move variation factor generation into pure `Bearilo.Audio.applyVariation` because random variation is generated inside `crates/daktilo_lib/src/app.rs`.
-- [ ] Store sequential playback index per key config because one `file_index` is shared across all key configs in `crates/daktilo_lib/src/app.rs`.
-- [ ] Lowercase both requested and available output device names because only available names are lowercased in `crates/daktilo_lib/src/app.rs`.
-- [ ] Return `OsHookError` from listener startup because `expect("could not listen events")` can panic inside `crates/daktilo_lib/src/lib.rs`.
-- [ ] Add embedded sound manifest tests because only embedded config parse is tested in `crates/daktilo_lib/src/embed.rs`.
-- [ ] Replace stale audio feature tests because `crates/daktilo_lib/src/app.rs` tests call old fields and old `App::init` shape.
+- [x] Split CLI parsing, config loading, command dispatch, and app startup because they are mixed in `crates/daktilo/src/main.rs`.
+- [x] Return `ConfigPathMissing` for an explicit missing config path because fallback to embedded config is used for any missing selected path in `crates/daktilo/src/main.rs`.
+- [x] Move key classification into pure `Bearilo.Input.classifyKeyEvent` because keyboard event handling and sound playback are mixed in `crates/daktilo_lib/src/app.rs`.
+- [x] Move random sound selection into pure `Bearilo.Audio.chooseSound` because `fastrand` is called inside `crates/daktilo_lib/src/app.rs`.
+- [x] Move variation factor generation into pure `Bearilo.Audio.applyVariation` because random variation is generated inside `crates/daktilo_lib/src/app.rs`.
+- [x] Store sequential playback index per key config because one `file_index` is shared across all key configs in `crates/daktilo_lib/src/app.rs`.
+- [x] Lowercase both requested and available output device names because only available names are lowercased in `crates/daktilo_lib/src/app.rs`.
+- [x] Return `OsHookError` from listener startup because `expect("could not listen events")` can panic inside `crates/daktilo_lib/src/lib.rs`.
+- [x] Add embedded sound manifest tests because only embedded config parse is tested in `crates/daktilo_lib/src/embed.rs`.
+- [x] Replace stale audio feature tests because `crates/daktilo_lib/src/app.rs` tests call old fields and old `App::init` shape.
 - [ ] Fix preset docs to use `sparks` because README lists `spark` while `config/bearilo.toml` defines `sparks`.
-- [ ] Test each removed limitation with a focused Hspec example in `test/LimitationSpec.hs`.
-- [ ] Acceptance: every limitation listed in `## Original daktilo limitations` has a failing regression test before the fix and a passing test after the fix.
+- [x] Test each removed limitation with a focused regression test in `test/LimitSpec.hs`.
+- [x] Acceptance: every limitation listed in `## Original daktilo limitations` has a failing regression test before the fix and a passing test after the fix.
 
 ## v0.8.0 — packaging
 

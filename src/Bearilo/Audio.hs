@@ -5,9 +5,11 @@ module Bearilo.Audio
     chooseRandom,
     chooseSequential,
     defaultVolume,
+    findOutputDevice,
     listOutputDevices,
     loadSound,
     loadSoundChoice,
+    nextSequentialFor,
     playSound,
     resampleNearest,
     resampledLength,
@@ -36,6 +38,7 @@ import Control.Applicative ((<|>))
 import Control.Exception (IOException, try)
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as ByteString
+import Data.Char (toLower)
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.List.NonEmpty qualified as NonEmpty
 import Data.Maybe (fromMaybe, isNothing)
@@ -50,6 +53,20 @@ withAudio =
 playSound :: AudioEngine -> LoadedSound -> PlaybackParams -> IO (Either AudioError ())
 playSound =
   SDL.playSoundSDL
+
+findOutputDevice :: String -> [OutputDevice] -> Either AudioError OutputDevice
+findOutputDevice requested devices =
+  case filter matches devices of
+    device : _ -> Right device
+    [] -> Left (AudioDeviceError ("output device not found: " <> requested))
+  where
+    normalizedRequested =
+      normalize requested
+
+    matches OutputDevice {outputDeviceName = OutputDeviceName available} =
+      normalize available == normalizedRequested
+
+    normalize = map toLower
 
 listOutputDevices :: IO (Either AudioError [OutputDevice])
 listOutputDevices =
@@ -94,6 +111,19 @@ loadSoundChoice source =
       choicePlaybackParams = defaultPlaybackParams,
       choiceVariation = identityVariation
     }
+
+nextSequentialFor :: KeyConfigId -> SequentialState -> NonEmpty Sound -> (Sound, SequentialState)
+nextSequentialFor keyConfigId (SequentialState entries) sounds =
+  (sound, SequentialState nextEntries)
+  where
+    currentIndex =
+      fromMaybe (SequentialIndex 0) (lookup keyConfigId entries)
+
+    (sound, nextIndex) =
+      chooseSequential currentIndex sounds
+
+    nextEntries =
+      (keyConfigId, nextIndex) : filter ((/= keyConfigId) . fst) entries
 
 soundForEvent :: AppConfig -> KeyEvent -> SoundChoice
 soundForEvent appConfig event =

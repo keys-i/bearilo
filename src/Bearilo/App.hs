@@ -9,6 +9,7 @@ module Bearilo.App
     selectDefaultPreset,
     selectPresets,
     soundChoicesForEvent,
+    soundChoicesForEventWithState,
   )
 where
 
@@ -23,13 +24,15 @@ import Bearilo.Os (withKeyListener)
 import Bearilo.Types
 import Control.Applicative ((<|>))
 import Control.Concurrent (threadDelay)
-import Control.Monad (forever, void)
+import Control.Monad (forever, void, when)
 import Data.Foldable (traverse_)
 import Data.IORef (newIORef, readIORef, writeIORef)
 import Data.List (find, intercalate)
+import Data.Maybe (isNothing)
 import Data.Text qualified as Text
 import Data.Text.IO qualified as TextIO
 import System.IO qualified as IO
+import Text.Regex.TDFA ((=~))
 
 data Runtime = Runtime
   { runtimeParseCli :: IO (Either AppError CliOptions),
@@ -154,11 +157,65 @@ resolveHiddenPreset noSurprises name
 
 soundChoicesForEvent :: AppConfig -> KeyEvent -> [SoundChoice]
 soundChoicesForEvent appConfig event =
-  [ choice
-    | preset <- appPresets appConfig,
-      let choice = soundForEvent appConfig {appPresets = [preset]} event,
-      choiceSound choice /= Nothing
-  ]
+  fst (soundChoicesForEventWithState appConfig emptySequentialState event)
+
+soundChoicesForEventWithState :: AppConfig -> SequentialState -> KeyEvent -> ([SoundChoice], SequentialState)
+soundChoicesForEventWithState appConfig initialState event =
+  foldl chooseForPreset ([], initialState) (zip [0 :: Int ..] (appPresets appConfig))
+  where
+    (eventKind, eventKeyName) =
+      eventDetails event
+
+    chooseForPreset (choices, state) (presetIndex, preset) =
+      case matchingConfigs preset of
+        [] -> (choices, state)
+        (keyConfigIndex, keyConfig, sounds) : _ ->
+          let keyConfigId = KeyConfigId (Text.unpack (presetName preset) <> ":" <> show presetIndex <> ":" <> show keyConfigIndex)
+              (sound, nextState) = chooseSound state keyConfigId keyConfig sounds
+              choice =
+                SoundChoice
+                  { choiceSound = Just sound,
+                    choicePlaybackParams = defaultPlaybackParams,
+                    choiceVariation =
+                      resolveVariation
+                        (cliVariation appConfig)
+                        (keyConfigVariation keyConfig)
+                        (presetVariation preset)
+                  }
+           in (choices <> [choice], nextState)
+
+    matchingConfigs preset =
+      [ (keyConfigIndex, keyConfig, sounds)
+        | eventKeyName `notElem` presetDisabledKeys preset,
+          (keyConfigIndex, keyConfig) <- zip [0 :: Int ..] (presetKeyConfigs preset),
+          keyConfigEvent keyConfig == eventKind,
+          Text.unpack eventKeyName =~ Text.unpack (keyConfigKeys keyConfig),
+          Just sounds <- [soundsForKeyConfig keyConfig]
+      ]
+
+    chooseSound state keyConfigId keyConfig sounds =
+      case keyConfigStrategy keyConfig of
+        Nothing -> (chooseFirst sounds, state)
+        Just Random -> (fst (chooseRandom (RandomSeed 0) sounds), state)
+        Just Sequential -> nextSequentialFor keyConfigId state sounds
+
+    eventDetails KeyPress =
+      (KeyPress, Text.empty)
+    eventDetails KeyRelease =
+      (KeyRelease, Text.empty)
+    eventDetails (KeyPressed observedKeyName) =
+      (KeyPress, observedKeyName)
+    eventDetails (KeyReleased observedKeyName) =
+      (KeyRelease, observedKeyName)
+
+    cliVariation config
+      | isNothing (appVolumeVariation config) && isNothing (appTempoVariation config) = Nothing
+      | otherwise =
+          Just
+            SoundVariation
+              { soundVariationVolume = appVolumeVariation config,
+                soundVariationTempo = appTempoVariation config
+              }
 
 defaultRuntime :: Runtime
 defaultRuntime =
@@ -203,9 +260,7 @@ defaultListen :: (KeyEvent -> IO ()) -> IO (Either AppError ())
 defaultListen callback = do
   result <-
     withKeyListener
-      ( \rawEvent ->
-          traverse_ callback (classifyKeyEvent rawEvent)
-      )
+      (traverse_ callback . classifyKeyEvent)
       (forever (threadDelay maxBound))
   pure $
     case result of
@@ -255,13 +310,16 @@ appConfigFromCli options config = do
 runListener :: Runtime -> AppConfig -> IO (Either AppError ())
 runListener runtime appConfig = do
   memoryRef <- newIORef emptyKeyMemory
+  sequentialRef <- newIORef emptySequentialState
   runtimeListen runtime $ \event -> do
     memory <- readIORef memoryRef
+    sequentialState <- readIORef sequentialRef
     let (shouldPlay, nextMemory) = shouldPlayEvent memory event
     writeIORef memoryRef nextMemory
-    if shouldPlay
-      then traverse_ (void . runtimePlay runtime) (soundChoicesForEvent appConfig event)
-      else pure ()
+    when shouldPlay $ do
+      let (choices, nextSequentialState) = soundChoicesForEventWithState appConfig sequentialState event
+      writeIORef sequentialRef nextSequentialState
+      traverse_ (void . runtimePlay runtime) choices
 
 outputDeviceLabel :: OutputDevice -> String
 outputDeviceLabel OutputDevice {outputDeviceName = OutputDeviceName name} =

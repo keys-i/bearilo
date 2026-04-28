@@ -1,6 +1,7 @@
 module Bearilo.Audio.Types
   ( AudioEngine (..),
     AudioError (..),
+    KeyConfigId (..),
     LoadedSound (..),
     OutputDevice (..),
     OutputDeviceName (..),
@@ -9,12 +10,14 @@ module Bearilo.Audio.Types
     PlaybackState (..),
     RandomSeed (..),
     SequentialIndex (..),
+    SequentialState (..),
     Sound (..),
     SoundChoice (..),
     SoundSource (..),
     VariationDirection (..),
     defaultPlaybackSlots,
     defaultPlaybackParams,
+    emptySequentialState,
     resampleNearest,
     resampledLength,
     sourceIndexForRate,
@@ -49,6 +52,16 @@ newtype OutputDevice = OutputDevice
 
 newtype SequentialIndex = SequentialIndex Int
   deriving stock (Eq, Show)
+
+newtype KeyConfigId = KeyConfigId String
+  deriving stock (Eq, Show)
+
+newtype SequentialState = SequentialState [(KeyConfigId, SequentialIndex)]
+  deriving stock (Eq, Show)
+
+emptySequentialState :: SequentialState
+emptySequentialState =
+  SequentialState []
 
 newtype RandomSeed = RandomSeed Int
   deriving stock (Eq, Show)
