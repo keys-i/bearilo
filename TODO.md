@@ -37,7 +37,7 @@ bearilo/
 │   ├── linux.c
 │   ├── linux.h
 │   ├── Darwin.c
-│   ├── Darwin.h
+│   ├── darwin.h
 │   ├── windows.c
 │   └── windows.h
 ├── assets/
@@ -75,7 +75,7 @@ bearilo/
 | `bridge/linux.c`             | Linux C hook implementation.                          |
 | `bridge/linux.h`             | Linux C hook header.                                  |
 | `bridge/Darwin.c`            | DarwinOS C hook implementation.                       |
-| `bridge/Darwin.h`            | DarwinOS C hook header.                               |
+| `bridge/darwin.h`            | DarwinOS C hook header.                               |
 | `bridge/windows.c`           | Windows C hook implementation.                        |
 | `bridge/windows.h`           | Windows C hook header.                                |
 | `config/bearilo.toml`        | Embedded default config copied from source.           |
@@ -157,7 +157,7 @@ bearilo/
 - [x] Add placeholder C and header files in `bridge/` using only the listed filenames.
 - [x] Add `test/Main.hs` and focused empty spec files from the project tree.
 - [x] Test that `app/Main.hs` contains only the `App.run` call.
-- [x] Test that `bridge/` contains only `linux.c`, `linux.h`, `Darwin.c`, `Darwin.h`, `windows.c`, and `windows.h`.
+- [x] Test that `bridge/` contains only `linux.c`, `linux.h`, `Darwin.c`, `darwin.h`, `windows.c`, and `windows.h`.
 - [x] Acceptance: `cabal build` and `cabal test` run against the empty skeleton.
 
 ## v0.2.0 — config
@@ -293,16 +293,16 @@ Manual test notes:
 
 ## v0.8.0 — packaging
 
-- [ ] Wire `bearilo.cabal` executable, library, and test suite so `cabal build all` works.
-- [ ] Add `cabal install exe:bearilo` to `README.md`.
-- [ ] Add Linux runtime dependency notes for `alsa-lib libxtst libxi`, `alsa-lib-dev libxi-dev libxtst-dev`, and `libasound2-dev libxi-dev libxtst-dev`. Source: `README.md`, `crates/daktilo/Cargo.toml`.
-- [ ] Add DarwinOS Input Monitoring note to `README.md`. Source: `README.md`.
-- [ ] Add Windows note that source lists Windows support and no extra permission step was found. Source: `README.md`.
-- [ ] Keep Cabal `c-sources` OS sections limited to the matching file in `bridge/`.
-- [ ] Add Cabal include settings for `bridge/linux.h`, `bridge/Darwin.h`, and `bridge/windows.h`.
-- [ ] Do not clone cargo-dist metadata because it only defines Rust release installers and targets. Source: `Cargo.toml`.
-- [ ] Do not clone WiX XML unless Cabal packaging gains an MSI task. Source: `crates/daktilo/wix/main.wxs`.
-- [ ] Add `test/PackagingSpec.hs` to check `bridge/` filenames and Cabal C source entries.
+- [x] Wire `bearilo.cabal` executable, library, and test suite so `cabal build all` works.
+- [x] Add `cabal install exe:bearilo` to `README.md`.
+- [x] Add Linux runtime dependency notes for `alsa-lib libxtst libxi`, `alsa-lib-dev libxi-dev libxtst-dev`, and `libasound2-dev libxi-dev libxtst-dev`. Source: `README.md`, `crates/daktilo/Cargo.toml`.
+- [x] Add DarwinOS Input Monitoring note to `README.md`. Source: `README.md`.
+- [x] Add Windows note that source lists Windows support and no extra permission step was found. Source: `README.md`.
+- [x] Keep Cabal `c-sources` OS sections limited to the matching file in `bridge/`.
+- [x] Add Cabal include settings for `bridge/linux.h`, `bridge/darwin.h`, and `bridge/windows.h`.
+- [x] Do not clone cargo-dist metadata because it only defines Rust release installers and targets. Source: `Cargo.toml`.
+- [x] Do not clone WiX XML unless Cabal packaging gains an MSI task. Source: `crates/daktilo/wix/main.wxs`.
+- [x] Add `test/PackagingSpec.hs` to check `bridge/` filenames and Cabal C source entries.
 - [ ] Acceptance: package builds, installs locally, and contains only the three OS C source files selected by Cabal conditionals.
 
 ## v1.0.0 — release
@@ -350,7 +350,7 @@ Manual test notes:
 | OS keyboard       | Keep OS keyboard hooks behind `Bearilo.Os`.                                                                                      |
 | OS types          | Keep shared OS types in `Bearilo.Os.Types`.                                                                                      |
 | Linux OS files    | Keep Linux Haskell FFI in `src/Bearilo/Os/Linux.hs`; keep C in `bridge/linux.c` and `bridge/linux.h`.                            |
-| DarwinOS OS files | Keep DarwinOS Haskell FFI in `src/Bearilo/Os/Darwin.hs`; keep C in `bridge/Darwin.c` and `bridge/Darwin.h`.                      |
+| DarwinOS OS files | Keep DarwinOS Haskell FFI in `src/Bearilo/Os/Darwin.hs`; keep C in `bridge/Darwin.c` and `bridge/darwin.h`.                      |
 | Windows OS files  | Keep Windows Haskell FFI in `src/Bearilo/Os/Windows.hs`; keep C in `bridge/windows.c` and `bridge/windows.h`.                    |
 | C files           | Keep C files only in `bridge/`.                                                                                                  |
 | C filenames       | Do not put `bridge` in filenames inside `bridge/`.                                                                               |
@@ -410,7 +410,7 @@ Manual test notes:
 - [ ] `cabal run bearilo -- --help` works.
 - [ ] `app/Main.hs` only calls `App.run`.
 - [ ] `Bearilo.Os` is the only public OS keyboard boundary.
-- [ ] `bridge/` contains only `linux.c`, `linux.h`, `Darwin.c`, `Darwin.h`, `windows.c`, `windows.h`.
+- [ ] `bridge/` contains only `linux.c`, `linux.h`, `Darwin.c`, `darwin.h`, `windows.c`, `windows.h`.
 - [ ] No file inside `bridge/` contains `bridge` in its filename.
 - [ ] No app module imports C functions directly.
 - [ ] Default config works.

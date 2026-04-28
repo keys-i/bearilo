@@ -9,6 +9,11 @@ spec :: IO ()
 spec = do
   testBridgeFiles
   testFfiBoundary
+  testCabalComponents
+  testCabalBridgeWiring
+  testCabalDoesNotContainReleaseInstallerMetadata
+  testReadmeCommands
+  testReadmePlatformNotes
 
 testBridgeFiles :: IO ()
 testBridgeFiles = do
@@ -17,6 +22,10 @@ testBridgeFiles = do
     "bridge contains only OS C bridge files"
     (sort ["linux.c", "linux.h", "darwin.c", "darwin.h", "windows.c", "windows.h"])
     (sort files)
+  assertEqual
+    "bridge filenames do not contain bridge"
+    []
+    [file | file <- files, "bridge" `isInfixOf` file]
 
 testFfiBoundary :: IO ()
 testFfiBoundary = do
@@ -38,8 +47,8 @@ testFfiBoundary = do
 
     listHaskellFiles root = do
       entries <- listDirectory root
-      fmap concat $
-        traverse
+      concat
+        <$> traverse
           ( \entry -> do
               let path = root </> entry
               isDirectory <- doesDirectoryExist path
@@ -48,6 +57,59 @@ testFfiBoundary = do
                 else pure [path | takeExtension path == ".hs"]
           )
           entries
+
+testCabalComponents :: IO ()
+testCabalComponents = do
+  cabal <- readFile "bearilo.cabal"
+  assertContains "cabal has library" "library" cabal
+  assertContains "cabal has executable" "executable bearilo" cabal
+  assertContains "cabal has test suite" "test-suite bearilo-test" cabal
+
+testCabalBridgeWiring :: IO ()
+testCabalBridgeWiring = do
+  cabal <- readFile "bearilo.cabal"
+  assertContains "linux C source is wired" "c-sources:    bridge/linux.c" cabal
+  assertContains "darwin C source is wired" "c-sources:    bridge/darwin.c" cabal
+  assertContains "windows C source is wired" "c-sources:    bridge/windows.c" cabal
+  assertContains "bridge include dir is wired" "include-dirs: bridge" cabal
+  assertNotContains "cabal does not reference bridge/Darwin.h" "bridge/Darwin.h" cabal
+  assertNotContains "cabal does not reference bridge/mac.c" "bridge/mac.c" cabal
+  assertNotContains "cabal does not reference bridge/mac.h" "bridge/mac.h" cabal
+
+testCabalDoesNotContainReleaseInstallerMetadata :: IO ()
+testCabalDoesNotContainReleaseInstallerMetadata = do
+  cabal <- readFile "bearilo.cabal"
+  assertNotContains "cabal does not mention cargo-dist" "cargo-dist" cabal
+  assertNotContains "cabal does not mention wix" "wix" cabal
+
+testReadmeCommands :: IO ()
+testReadmeCommands = do
+  readme <- readFile "README.md"
+  assertContains "README has install command" "cabal install exe:bearilo" readme
+  assertContains "README has build command" "cabal build all" readme
+  assertContains "README has test command" "cabal test all" readme
+  assertContains "README has local run command" "cabal run exe:bearilo -- --help" readme
+
+testReadmePlatformNotes :: IO ()
+testReadmePlatformNotes = do
+  readme <- readFile "README.md"
+  assertContains "README has Arch Linux dependency notes" "alsa-lib libxtst libxi" readme
+  assertContains "README has Alpine dependency notes" "alsa-lib-dev libxi-dev libxtst-dev" readme
+  assertContains "README has Debian dependency notes" "libasound2-dev libxi-dev libxtst-dev" readme
+  assertContains "README has Input Monitoring note" "Input Monitoring" readme
+  assertContains "README has Windows support note" "No extra permission step was found" readme
+
+assertContains :: String -> String -> String -> IO ()
+assertContains label expected contents =
+  assertBool label (expected `isInfixOf` contents)
+
+assertNotContains :: String -> String -> String -> IO ()
+assertNotContains label unexpected contents =
+  assertBool label (not (unexpected `isInfixOf` contents))
+
+assertBool :: String -> Bool -> IO ()
+assertBool _ True = pure ()
+assertBool label False = error label
 
 assertEqual :: (Eq a, Show a) => String -> a -> a -> IO ()
 assertEqual _ expected actual
