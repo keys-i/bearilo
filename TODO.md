@@ -231,18 +231,29 @@ bearilo/
 
 ## v0.5.1 — real OS keyboard bridge
 
-- [ ] Replace Linux bridge placeholder with real keyboard event capture. Prefer evdev-style raw events unless source or platform constraints prove a better backend.
-- [ ] Replace DarwinOS bridge placeholder with `CGEventTapCreate`-based key press and release capture.
-- [ ] Replace Windows bridge placeholder with `SetWindowsHookExW` using `WH_KEYBOARD_LL`.
-- [ ] Add callback plumbing so C bridge events reach the matching `Bearilo.Os.*` module as `RawKeyEvent`.
-- [ ] Convert platform key codes/names into non-empty `RawKeyName` values inside the matching OS module.
-- [ ] Preserve `RawPressed`, `RawReleased`, and `RawOther` mapping without putting key classification in C.
-- [ ] Keep `Bearilo.App` and `Bearilo.Input` free of FFI imports.
-- [ ] Return explicit `OsHookError` values for listener start, stop, and callback failures.
-- [ ] Keep bridge headers limited to start/stop listener API plus the minimum callback type needed for event delivery.
-- [ ] Add tests for pure platform event conversion where possible without requiring a real global keyboard hook.
-- [ ] Add manual test notes for Linux, DarwinOS Input Monitoring, and Windows hook startup.
+- [x] Replace Linux bridge placeholder with real keyboard event capture. Prefer evdev-style raw events unless source or platform constraints prove a better backend.
+- [x] Replace DarwinOS bridge placeholder with `CGEventTapCreate`-based key press and release capture.
+- [x] Replace Windows bridge placeholder with `SetWindowsHookExW` using `WH_KEYBOARD_LL`.
+- [x] Add callback plumbing so C bridge events reach the matching `Bearilo.Os.*` module as `RawKeyEvent`.
+- [x] Convert platform key codes/names into non-empty `RawKeyName` values through the shared raw event conversion helper.
+- [x] Preserve `RawPressed`, `RawReleased`, and `RawOther` mapping without putting key classification in C.
+- [x] Keep `Bearilo.App` and `Bearilo.Input` free of FFI imports.
+- [x] Return explicit `OsHookError` values for listener start, stop, and callback failures.
+- [x] Keep bridge headers limited to start/stop listener API plus the minimum callback type needed for event delivery.
+- [x] Add tests for pure platform event conversion where possible without requiring a real global keyboard hook.
+- [x] Add manual test notes for Linux, DarwinOS Input Monitoring, and Windows hook startup.
+- [ ] Compile-verify `bridge/linux.c` on Linux with Linux input headers and pthread available.
+- [ ] Compile-verify `bridge/windows.c` on Windows with `user32` available.
+- [ ] Manually verify Linux runtime key events with permission to read `/dev/input/event*`.
+- [ ] Manually verify DarwinOS runtime key events with Input Monitoring/Accessibility permission granted to the terminal.
+- [ ] Manually verify Windows runtime key events with the low-level hook message loop running.
 - [ ] Acceptance: real platform bridges can produce `RawKeyEvent` values through `withKeyListener`, while CI tests do not require global keyboard permissions.
+
+Manual test notes:
+
+- Linux may require root or group permission for `/dev/input/event*`; start `bearilo` from a terminal with permission, press and release a key, and confirm raw key events arrive.
+- DarwinOS requires Input Monitoring or Accessibility permission for the terminal application; grant permission, restart the terminal, press and release a key, and confirm raw key events arrive.
+- Windows requires the low-level keyboard hook thread to keep its message loop running; start `bearilo`, press and release a key, and confirm raw key events arrive before stopping the listener.
 
 ## v0.6.0 — app behaviour parity
 

@@ -1,16 +1,18 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
-
 module Bearilo.Os.Windows (withWindowsKeyListener) where
 
-import Bearilo.Os.Types (OsHookError, RawKeyEvent, withOsHook)
+import Bearilo.Os.Types (CKeyCallback, OsHookError, RawKeyEvent, withCKeyListener)
 import Foreign.C.Types (CInt (..))
+import Foreign.Ptr (FunPtr, Ptr)
 
-foreign import ccall unsafe "bearilo_windows_start_listener"
-  c_windows_start_listener :: IO CInt
+foreign import ccall "wrapper"
+  mkWindowsKeyCallback :: CKeyCallback -> IO (FunPtr CKeyCallback)
 
-foreign import ccall unsafe "bearilo_windows_stop_listener"
-  c_windows_stop_listener :: IO CInt
+foreign import ccall safe "bearilo_windows_start"
+  c_windows_start :: FunPtr CKeyCallback -> Ptr () -> IO CInt
+
+foreign import ccall safe "bearilo_windows_stop"
+  c_windows_stop :: IO CInt
 
 withWindowsKeyListener :: (RawKeyEvent -> IO ()) -> IO a -> IO (Either OsHookError a)
-withWindowsKeyListener _callback =
-  withOsHook "windows" c_windows_start_listener c_windows_stop_listener
+withWindowsKeyListener =
+  withCKeyListener "windows" mkWindowsKeyCallback c_windows_start c_windows_stop

@@ -1,16 +1,18 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
-
 module Bearilo.Os.Linux (withLinuxKeyListener) where
 
-import Bearilo.Os.Types (OsHookError, RawKeyEvent, withOsHook)
+import Bearilo.Os.Types (CKeyCallback, OsHookError, RawKeyEvent, withCKeyListener)
 import Foreign.C.Types (CInt (..))
+import Foreign.Ptr (FunPtr, Ptr)
 
-foreign import ccall unsafe "bearilo_linux_start_listener"
-  c_linux_start_listener :: IO CInt
+foreign import ccall "wrapper"
+  mkLinuxKeyCallback :: CKeyCallback -> IO (FunPtr CKeyCallback)
 
-foreign import ccall unsafe "bearilo_linux_stop_listener"
-  c_linux_stop_listener :: IO CInt
+foreign import ccall safe "bearilo_linux_start"
+  c_linux_start :: FunPtr CKeyCallback -> Ptr () -> IO CInt
+
+foreign import ccall safe "bearilo_linux_stop"
+  c_linux_stop :: IO CInt
 
 withLinuxKeyListener :: (RawKeyEvent -> IO ()) -> IO a -> IO (Either OsHookError a)
-withLinuxKeyListener _callback =
-  withOsHook "linux" c_linux_start_listener c_linux_stop_listener
+withLinuxKeyListener =
+  withCKeyListener "linux" mkLinuxKeyCallback c_linux_start c_linux_stop

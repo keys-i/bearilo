@@ -3,17 +3,67 @@
 module InputSpec (spec) where
 
 import Bearilo.Input (classifyKeyEvent)
-import Bearilo.Os.Types (RawKeyEvent (..), RawKeyName (..), RawKeyState (..))
+import Bearilo.Os.Types
+  ( RawKeyEvent (..),
+    RawKeyState (..),
+    mkRawKeyName,
+    rawEventFromC,
+    rawStateFromCode,
+    unRawKeyName,
+  )
 import Bearilo.Types (KeyEvent (..))
-import Data.Text (Text)
 
 spec :: IO ()
 spec = do
+  testEmptyRawKeyNameRejected
+  testNonEmptyRawKeyNameAccepted
+  testPressStateCode
+  testReleaseStateCode
+  testOtherStateCode
+  testFallbackNameForEmptyCName
+  testInvalidCodeWithEmptyCNameRejected
   testRawPressConverts
   testRawReleaseConverts
   testRawOtherConvertsToNothing
-  testEmptyRawKeyNameConvertsToNothing
-  testNonEmptyRawKeyNamePreserved
+
+testEmptyRawKeyNameRejected :: IO ()
+testEmptyRawKeyNameRejected =
+  assertEqual "empty raw key name is rejected" Nothing (mkRawKeyName "")
+
+testNonEmptyRawKeyNameAccepted :: IO ()
+testNonEmptyRawKeyNameAccepted =
+  case mkRawKeyName "A" of
+    Just keyName ->
+      assertEqual "non-empty raw key name is accepted" "A" (unRawKeyName keyName)
+    Nothing ->
+      error "expected non-empty raw key name"
+
+testPressStateCode :: IO ()
+testPressStateCode =
+  assertEqual "C state code for press maps to RawPressed" RawPressed (rawStateFromCode 1)
+
+testReleaseStateCode :: IO ()
+testReleaseStateCode =
+  assertEqual "C state code for release maps to RawReleased" RawReleased (rawStateFromCode 0)
+
+testOtherStateCode :: IO ()
+testOtherStateCode =
+  assertEqual "C state code for other maps to RawOther" RawOther (rawStateFromCode 2)
+
+testFallbackNameForEmptyCName :: IO ()
+testFallbackNameForEmptyCName =
+  case rawEventFromC 30 1 (Just "") of
+    Just event ->
+      assertEqual "empty C name gets fallback key code name" "KeyCode-30" (unRawKeyName (rawKeyName event))
+    Nothing ->
+      error "expected fallback raw key event"
+
+testInvalidCodeWithEmptyCNameRejected :: IO ()
+testInvalidCodeWithEmptyCNameRejected =
+  assertEqual
+    "empty C name with invalid key code is rejected"
+    Nothing
+    (rawEventFromC (-1) 1 (Just ""))
 
 testRawPressConverts :: IO ()
 testRawPressConverts =
@@ -36,27 +86,17 @@ testRawOtherConvertsToNothing =
     Nothing
     (classifyKeyEvent (raw "KeyA" RawOther))
 
-testEmptyRawKeyNameConvertsToNothing :: IO ()
-testEmptyRawKeyNameConvertsToNothing =
-  assertEqual
-    "empty raw key name converts to Nothing"
-    Nothing
-    (classifyKeyEvent (raw "" RawPressed))
-
-testNonEmptyRawKeyNamePreserved :: IO ()
-testNonEmptyRawKeyNamePreserved =
-  case classifyKeyEvent (raw "Space" RawPressed) of
-    Just (KeyPressed name) ->
-      assertEqual "non-empty raw key name is preserved" "Space" name
-    other ->
-      error ("expected KeyPressed Space, got: " <> show other)
-
-raw :: Text -> RawKeyState -> RawKeyEvent
+raw :: String -> RawKeyState -> RawKeyEvent
 raw keyName keyState =
-  RawKeyEvent
-    { rawKeyName = RawKeyName keyName,
-      rawKeyState = keyState
-    }
+  case rawEventFromC 30 stateCode (Just keyName) of
+    Just event -> event
+    Nothing -> error "expected valid raw key event"
+  where
+    stateCode =
+      case keyState of
+        RawPressed -> 1
+        RawReleased -> 0
+        RawOther -> 2
 
 assertEqual :: (Eq a, Show a) => String -> a -> a -> IO ()
 assertEqual _ expected actual

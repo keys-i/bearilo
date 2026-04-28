@@ -20,7 +20,7 @@ name:               bearilo
 -- PVP summary:     +-+------- breaking API changes
 --                  | | +----- non-breaking API additions
 --                  | | | +--- code changes with no API change
-version:            0.5.0.0
+version:            0.5.1.2
 
 -- A short (one-line) description of the package.
 synopsis:
@@ -70,6 +70,7 @@ common warnings
     default-extensions:
         DerivingStrategies
         TemplateHaskell
+        ForeignFunctionInterface
     ghc-options:
         -Wall
         -Wcompat
@@ -123,6 +124,8 @@ library
             Bearilo.Os.Linux
         c-sources:    bridge/linux.c
         include-dirs: bridge
+        extra-libraries:
+            pthread
 
     -- Darwin/macOS C keyboard hook bridge.
     if os(darwin)

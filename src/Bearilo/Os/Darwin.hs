@@ -1,16 +1,18 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
-
 module Bearilo.Os.Darwin (withDarwinKeyListener) where
 
-import Bearilo.Os.Types (OsHookError, RawKeyEvent, withOsHook)
+import Bearilo.Os.Types (CKeyCallback, OsHookError, RawKeyEvent, withCKeyListener)
 import Foreign.C.Types (CInt (..))
+import Foreign.Ptr (FunPtr, Ptr)
 
-foreign import ccall unsafe "bearilo_darwin_start_listener"
-  c_darwin_start_listener :: IO CInt
+foreign import ccall "wrapper"
+  mkDarwinKeyCallback :: CKeyCallback -> IO (FunPtr CKeyCallback)
 
-foreign import ccall unsafe "bearilo_darwin_stop_listener"
-  c_darwin_stop_listener :: IO CInt
+foreign import ccall safe "bearilo_darwin_start"
+  c_darwin_start :: FunPtr CKeyCallback -> Ptr () -> IO CInt
+
+foreign import ccall safe "bearilo_darwin_stop"
+  c_darwin_stop :: IO CInt
 
 withDarwinKeyListener :: (RawKeyEvent -> IO ()) -> IO a -> IO (Either OsHookError a)
-withDarwinKeyListener _callback =
-  withOsHook "darwin" c_darwin_start_listener c_darwin_stop_listener
+withDarwinKeyListener =
+  withCKeyListener "darwin" mkDarwinKeyCallback c_darwin_start c_darwin_stop
