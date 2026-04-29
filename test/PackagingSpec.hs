@@ -1,9 +1,12 @@
 module PackagingSpec (spec) where
 
 import Control.Monad (filterM, forM_)
+import Data.Char (isDigit)
 import Data.List (isInfixOf, sort)
-import System.Directory (doesDirectoryExist, doesFileExist, listDirectory)
+import System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist, getTemporaryDirectory, listDirectory)
+import System.Exit (ExitCode (..))
 import System.FilePath (normalise, takeExtension, (</>))
+import System.Process (readProcessWithExitCode)
 
 spec :: IO ()
 spec = do
@@ -22,6 +25,7 @@ spec = do
   testReadmePlatformNotes
   testReadmeSections
   testGithubActionsWorkflows
+  testFunctionalPurityScore
 
 testBridgeFiles :: IO ()
 testBridgeFiles = do
@@ -216,11 +220,15 @@ testGithubActionsWorkflows :: IO ()
 testGithubActionsWorkflows = do
   ciExists <- doesFileExist ".github/workflows/ci.yml"
   websiteExists <- doesFileExist ".github/workflows/website.yml"
+  purityExists <- doesFileExist ".github/workflows/functional-purity.yml"
   assertBool "CI workflow exists" ciExists
   assertBool "website workflow exists" websiteExists
+  assertBool "functional purity workflow exists" purityExists
 
   ci <- readFile ".github/workflows/ci.yml"
   website <- readFile ".github/workflows/website.yml"
+  purity <- readFile ".github/workflows/functional-purity.yml"
+  buildSite <- readFile "scripts/build-site.sh"
   siteScriptExists <- doesFileExist "scripts/build-site.sh"
   let unsafeRunLines =
         [ line
@@ -240,6 +248,9 @@ testGithubActionsWorkflows = do
     (not ("scripts/build-site.sh" `isInfixOf` website) || siteScriptExists)
   assertNotContains "CI does not run device enumeration" "--list-devices" ci
   assertEqual "CI does not run the normal keyboard listener" [] unsafeRunLines
+  assertContains "website build creates purity badge JSON" "badges/purity.json" buildSite
+  assertContains "purity workflow uploads report" "purity-report.md" purity
+  assertNotContains "purity workflow does not deploy Pages" "actions/deploy-pages" purity
   where
     safeCliLine line =
       any
@@ -249,6 +260,82 @@ testGithubActionsWorkflows = do
           "-- --version",
           "--list-presets"
         ]
+
+testFunctionalPurityScore :: IO ()
+testFunctionalPurityScore = do
+  scriptExists <- doesFileExist "scripts/functional-purity-score.py"
+  assertBool "functional purity script exists" scriptExists
+
+  script <- readFile "scripts/functional-purity-score.py"
+  readme <- readFile "README.md"
+  assertContains "script documents formula" formulaText script
+  assertContains "README has functional purity badge" "Functional purity" readme
+  assertContains "README badge uses Shields endpoint" "img.shields.io/endpoint" readme
+
+  tempDirectory <- getTemporaryDirectory
+  let outputDirectory = tempDirectory </> "bearilo-purity-packaging-spec"
+      outputJson = outputDirectory </> "purity.json"
+      report = outputDirectory </> "purity-report.md"
+
+  createDirectoryIfMissing True outputDirectory
+  (exitCode, _, stderrText) <-
+    readProcessWithExitCode
+      "python3"
+      [ "scripts/functional-purity-score.py",
+        "--src",
+        "src",
+        "--tests",
+        "test",
+        "--bridge",
+        "bridge",
+        "--out",
+        outputJson,
+        "--report",
+        report
+      ]
+      ""
+  assertEqual "functional purity script exits successfully" ExitSuccess exitCode
+
+  (jsonExitCode, _, jsonError) <- readProcessWithExitCode "python3" ["-m", "json.tool", outputJson] ""
+  assertEqual "functional purity JSON is valid" ExitSuccess jsonExitCode
+
+  jsonText <- readFile outputJson
+  assertAllContains
+    jsonText
+    [ ("purity JSON has schemaVersion", "\"schemaVersion\": 1"),
+      ("purity JSON has label", "\"label\": \"functional purity\""),
+      ("purity JSON has message", "\"message\":"),
+      ("purity JSON has color", "\"color\":"),
+      ("purity JSON has score", "\"score\":"),
+      ("purity JSON has max", "\"max\": 100")
+    ]
+  case jsonInt "score" jsonText of
+    Just score ->
+      assertBool "purity score is between 0 and 100" (score >= 0 && score <= 100)
+    Nothing ->
+      error ("could not read score from purity JSON; script stderr was: " <> stderrText <> jsonError)
+  where
+    formulaText =
+      "score = clamp(0, 100, 100 - ioPenalty - ffiPenalty - partialPenalty - cPenalty - hlintPenalty + testReward)"
+
+jsonInt :: String -> String -> Maybe Int
+jsonInt key contents = do
+  afterKey <- dropPrefixOnce ("\"" <> key <> "\":") contents
+  let digits = takeWhile isDigit (dropWhile (not . isDigit) afterKey)
+  if null digits then Nothing else Just (read digits)
+
+dropPrefixOnce :: String -> String -> Maybe String
+dropPrefixOnce needle haystack =
+  case dropWhile (not . isPrefixOfNeedle) (tailsOf haystack) of
+    match : _ -> Just (drop (length needle) match)
+    [] -> Nothing
+  where
+    isPrefixOfNeedle text =
+      needle == take (length needle) text
+
+tailsOf :: [a] -> [[a]]
+tailsOf [] = [[]]
+tailsOf value@(_ : rest) = value : tailsOf rest
 
 assertContains :: String -> String -> String -> IO ()
 assertContains label expected contents =

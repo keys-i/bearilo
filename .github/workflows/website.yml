@@ -5,8 +5,14 @@ on:
     branches: [main]
     paths:
       - README.md
+      - CONTRIBUTING.md
       - .github/workflows/website.yml
       - scripts/build-site.sh
+      - scripts/functional-purity-score.py
+      - app/**
+      - src/**
+      - test/**
+      - bridge/**
       - assets/**
   workflow_dispatch:
 

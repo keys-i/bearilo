@@ -155,4 +155,11 @@ if [ -d assets ]; then
   cp -R assets "$site_dir/"
 fi
 
+python3 scripts/functional-purity-score.py \
+  --src src \
+  --tests test \
+  --bridge bridge \
+  --out "$site_dir/badges/purity.json" \
+  --report "$site_dir/purity-report.md"
+
 : > "$site_dir/.nojekyll"

@@ -208,6 +208,7 @@ test-suite bearilo-test
         bytestring,
         directory,
         filepath,
+        process,
         text,
         time
 

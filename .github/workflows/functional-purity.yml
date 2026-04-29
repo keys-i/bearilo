@@ -1,0 +1,59 @@
+name: Functional Purity
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GHC_VERSION: "9.6.7"
+
+jobs:
+  score:
+    name: Score
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Haskell
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: ${{ env.GHC_VERSION }}
+          cabal-version: latest
+          cabal-update: false
+
+      - name: Update Cabal package index
+        run: cabal update
+
+      - name: Install HLint
+        run: cabal install hlint
+
+      - name: Compute functional purity score
+        run: |
+          python3 scripts/functional-purity-score.py \
+            --src src \
+            --tests test \
+            --bridge bridge \
+            --out site/badges/purity.json \
+            --report purity-report.md
+
+      - name: Upload purity report
+        uses: actions/upload-artifact@v7
+        with:
+          name: functional-purity-report
+          path: purity-report.md
+          if-no-files-found: error
+
+      - name: Upload badge JSON
+        uses: actions/upload-artifact@v7
+        with:
+          name: functional-purity-badge-json
+          path: site/badges/purity.json
+          if-no-files-found: error

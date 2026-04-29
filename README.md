@@ -6,6 +6,8 @@
 
 Written by Keys-i -=[powered by bears]=-
 
+[![Functional purity](https://img.shields.io/endpoint?url=https%3A%2F%2Fkeys-i.github.io%2Fbearilo%2Fbadges%2Fpurity.json)](https://keys-i.github.io/bearilo/badges/purity.json)
+
 ```text
       .-------.
      _| ʕ•ᴥ•ʔ |_
@@ -194,6 +196,36 @@ Install the executable into Cabal's install directory:
 
 ```sh
 cabal install exe:bearilo
+```
+
+## Windows SDL2 Setup
+
+With GHC 9.4.1 and newer on Windows, use SDL2 packages from the MSYS2 CLANG64
+environment. Mixing `C:\msys64\mingw64` libraries with the GHCup clang/lld
+toolchain can fail while building the Haskell `sdl2` dependency with unresolved
+`__stack_chk_fail` and `__stack_chk_guard` symbols.
+
+Install the matching SDL2 libraries:
+
+```sh
+pacman -S mingw-w64-clang-x86_64-SDL2 mingw-w64-clang-x86_64-SDL2_mixer mingw-w64-clang-x86_64-pkgconf
+```
+
+Make Cabal point at the same MSYS2 environment. `cabal user-config path` shows
+the config file to edit. Replace `C:\msys64` if your MSYS2 root is elsewhere.
+
+```cabal
+extra-prog-path: C:\msys64\clang64\bin
+                 C:\msys64\usr\bin
+extra-include-dirs: C:\msys64\clang64\include
+extra-lib-dirs: C:\msys64\clang64\lib
+```
+
+After changing the Cabal config, reopen the terminal and run:
+
+```sh
+cabal clean
+cabal build all
 ```
 
 ## macOS Permissions

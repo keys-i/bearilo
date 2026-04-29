@@ -5,6 +5,7 @@
 *.swo
 *~
 .#*
+__pycache__/
 
 # --- OS files ---
 .DS_Store
@@ -50,6 +51,7 @@ cabal.sandbox.config
 doc/
 docs/_site/
 site/
+purity-report.md
 *.aux
 *.log
 *.out
