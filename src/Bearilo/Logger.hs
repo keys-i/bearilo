@@ -14,6 +14,7 @@ module Bearilo.Logger
 where
 
 import Bearilo.Output (colorDebug, colorInfo, colorTarget, colorTimestamp, colorTrace, colorWarn)
+import Control.Monad (when)
 import Data.Time (UTCTime (..), defaultTimeLocale, diffTimeToPicoseconds, formatTime)
 
 -- | How much log output Bearilo should show.
@@ -123,8 +124,6 @@ logTrace =
 
 logMessage :: LogMessageLevel -> Logger -> String -> IO ()
 logMessage messageLevel logger message =
-  if shouldLog (loggerLevel logger) messageLevel
-    then do
-      now <- loggerNow logger
-      loggerOutput logger (renderLogLine (loggerUseColor logger) now messageLevel message)
-    else pure ()
+  when (shouldLog (loggerLevel logger) messageLevel) $ do
+    now <- loggerNow logger
+    loggerOutput logger (renderLogLine (loggerUseColor logger) now messageLevel message)

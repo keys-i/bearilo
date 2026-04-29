@@ -215,8 +215,8 @@ soundChoicesForEventWithState appConfig initialState event =
     keyDisabled observedKeyName preset =
       observedKeyName `elem` presetDisabledKeys preset
 
-    keyMatches pattern observedKeyName =
-      Text.unpack observedKeyName =~ Text.unpack pattern
+    keyMatches keyPattern observedKeyName =
+      Text.unpack observedKeyName =~ Text.unpack keyPattern
 
     returnReleaseSuppressed preset =
       eventKind == KeyRelease

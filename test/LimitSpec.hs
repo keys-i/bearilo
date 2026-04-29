@@ -166,7 +166,7 @@ testPresetListNoStandaloneSpark :: IO ()
 testPresetListNoStandaloneSpark =
   assertBool
     "preset list does not contain standalone spark"
-    (not (any (== "spark") (words (listPresets configFixture))))
+    ("spark" `notElem` words (listPresets configFixture))
 
 allReferencedSoundPaths :: Config -> [FilePath]
 allReferencedSoundPaths config =

@@ -25,7 +25,7 @@ import Bearilo.Output
 import Bearilo.Types
 import Bearilo.Version (beariloVersion)
 import Control.Monad (forM_)
-import Data.IORef (newIORef, readIORef, modifyIORef')
+import Data.IORef (modifyIORef', newIORef, readIORef)
 import Data.List (isInfixOf, isPrefixOf)
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Text (Text)
@@ -141,7 +141,8 @@ testRenderLogLine = do
       ("WARN is bright bold yellow", MsgWarn, colorWarn, " WARN"),
       ("DEBUG is bright bold purple", MsgDebug, colorDebug, "DEBUG"),
       ("TRACE is bright bold light blue", MsgTrace, colorTrace, "TRACE")
-    ] $ \(label, level, colorLevel, renderedLevel) ->
+    ]
+    $ \(label, level, colorLevel, renderedLevel) ->
       assertBool
         label
         (colorLevel True renderedLevel `isInfixOf` renderLogLine True fixedTime level "message")
@@ -166,7 +167,8 @@ testVerboseCli =
     [ ("-V", ["-V"], 1),
       ("-VV", ["-VV"], 2),
       ("--verbose", ["--verbose"], 1)
-    ] $ \(label, args, expected) ->
+    ]
+    $ \(label, args, expected) ->
       assertCliVerbose label expected args
 
 testVersionAndHelpCli :: IO ()
@@ -174,13 +176,15 @@ testVersionAndHelpCli = do
   forM_
     [ ("-v", ["-v"]),
       ("--version", ["--version"])
-    ] $ \(label, args) ->
+    ]
+    $ \(label, args) ->
       assertCliCommand label CliVersion args
 
   forM_
     [ ("-h", ["-h"]),
       ("--help", ["--help"])
-    ] $ \(label, args) ->
+    ]
+    $ \(label, args) ->
       case parseCliPure args of
         Left (CliParseError helpText) ->
           assertBool (label <> " returns help") ("Usage:" `isInfixOf` helpText)
@@ -460,7 +464,8 @@ testEmbeddedPresetSections =
       let output = renderPresetList False (configSoundPresets config)
 
       forM_
-        ["[default]", "[basic]", "[musicbox]", "[ducktilo]", "[drumkit]", "[sparks]"] $ \section ->
+        ["[default]", "[basic]", "[musicbox]", "[ducktilo]", "[drumkit]", "[sparks]"]
+        $ \section ->
           assertBool ("preset list contains " <> section) (section `isInfixOf` output)
       assertBool "file lists are comma-separated" ("dspark1.mp3,dspark2.mp3,dspark3.mp3" `isInfixOf` output)
       assertBool "plain embedded preset list has no color" (not ("\ESC[" `isInfixOf` output))
@@ -488,7 +493,7 @@ testListPresetsNoStandaloneSpark :: IO ()
 testListPresetsNoStandaloneSpark =
   assertBool
     "list presets does not contain standalone spark"
-    (not (any (== "spark") (words (listPresets appConfigFixture))))
+    ("spark" `notElem` words (listPresets appConfigFixture))
 
 testDisabledKeyNoSound :: IO ()
 testDisabledKeyNoSound =

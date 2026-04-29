@@ -270,7 +270,7 @@ runListener logger runtime appConfig = do
         sequentialState <- readIORef sequentialRef
         let (shouldPlay, nextMemory) = shouldPlayEvent memory event
         writeIORef memoryRef nextMemory
-        when (not shouldPlay) $
+        when shouldPlay $
           logDebug logger ("Press suppressed: " <> eventLabel event)
         when shouldPlay $ do
           let (choices, nextSequentialState) = soundChoicesForEventWithState appConfig sequentialState event

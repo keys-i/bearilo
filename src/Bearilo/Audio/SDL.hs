@@ -241,8 +241,7 @@ freeCachedPlaybackChunks = do
   traverse_ (void . tryAny . Mixer.free) cachedChunks
 
 lookupCachedChunk :: PlaybackChunkCacheKey -> [(PlaybackChunkCacheKey, Mixer.Chunk)] -> Maybe Mixer.Chunk
-lookupCachedChunk key =
-  lookup key
+lookupCachedChunk = lookup
 
 data PlaybackChunkCacheKey = PlaybackChunkCacheKey
   { cacheSoundPath :: FilePath,

@@ -107,7 +107,7 @@ testReadmePresets = do
   assertContains "README has sparks preset" "`sparks`" readme
   assertBool
     "README does not contain standalone spark"
-    (not (any (== "spark") (map trimWord (words readme))))
+    (not (any ((== "spark") . trimWord) (words readme)))
   where
     trimWord =
       filter (`notElem` ("`.,;:()[]#" :: String))
