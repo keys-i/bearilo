@@ -307,6 +307,9 @@ Manual test notes:
 
 ## v1.0.0 — release
 
+- [x] Add GitHub Actions release workflow that validates version tags, extracts release notes from `CHANGELOG.md`, builds native binary archives, and publishes GitHub Releases without Hackage or installer publishing.
+- [x] Add release packaging scripts for changelog extraction and Unix archive/checksum creation.
+- [x] Document the tag-based release flow in `README.md`.
 - [ ] Run manual test `cabal run bearilo -- --help`. Source: `README.md`, `crates/daktilo/src/args.rs`.
 - [ ] Run manual test `cabal run bearilo -- --init` and verify `bearilo.toml` is written. Source: `crates/daktilo/src/main.rs`.
 - [ ] Run manual test `cabal run bearilo -- --list-presets`. Source: `crates/daktilo/src/main.rs`.
@@ -325,6 +328,14 @@ Manual test notes:
 - [ ] Acceptance: `cabal build`, `cabal test`, manual tests, README checks, and platform notes are complete.
 
 Manual release tests remain unchecked until they are actually run.
+
+## v1.0.1 — CI and website workflows
+
+- [x] Add GitHub Actions CI workflow for `cabal build all` and `cabal test all` on Linux, macOS, and Windows.
+- [x] Add non-blocking HLint workflow job for `app`, `src`, and `test`.
+- [x] Add GitHub Pages workflow that publishes `README.md` from `site/` without npm or Jekyll.
+- [x] Add `scripts/build-site.sh` with a Pandoc path and escaped preformatted fallback.
+- [x] Add packaging tests for CI, Pages permissions, Pages deployment, and website script wiring.
 
 ## Original daktilo limitations
 

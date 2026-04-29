@@ -69,12 +69,15 @@ renderPresetList useColor presets =
   unlines (concatMap renderPreset presets)
   where
     renderPreset preset =
-      [ "[" <> Text.unpack (presetName preset) <> "]",
-        colorHeader useColor (head renderedRows),
-        renderedRows !! 1
-      ]
-        <> drop 2 renderedRows
-        <> [""]
+      case renderedRows of
+        headerRow : separatorRow : bodyRows ->
+          [ "[" <> Text.unpack (presetName preset) <> "]",
+            colorHeader useColor headerRow,
+            separatorRow
+          ]
+            <> bodyRows
+            <> [""]
+        _ -> []
       where
         renderedRows =
           renderRows columnGap (headers : separator : map keyConfigRow (presetKeyConfigs preset))

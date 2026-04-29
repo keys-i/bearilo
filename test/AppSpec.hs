@@ -40,6 +40,7 @@ spec = do
   testVerboseCli
   testVersionAndHelpCli
   testActionFlagsKeepNormalOptions
+  testShortOptionAliases
   testVersionCommandOutputsVersion
   testInitCli
   testListPresetsCli
@@ -67,6 +68,7 @@ spec = do
   testEmbeddedPresetSections
   testDeviceListRendering
   testListPresetsSparks
+  testListPresetsVpaul
   testListPresetsNoStandaloneSpark
   testDisabledKeyNoSound
   testDisabledKeyReleaseNoSound
@@ -209,6 +211,16 @@ testActionFlagsKeepNormalOptions = do
       assertEqual "list-devices action parses" True (cliListDevices options)
       assertEqual "list-devices keeps device" (Just "BuiltIn") (cliDevice options)
     other -> error ("expected list-devices parse success, got: " <> show other)
+
+testShortOptionAliases :: IO ()
+testShortOptionAliases =
+  case parseCliPure ["-i", "-p", "vpaul", "-d", "BuiltIn", "-c", "x.toml"] of
+    Right options -> do
+      assertEqual "short init parses" True (cliInit options)
+      assertEqual "short preset parses" ["vpaul"] (cliPresets options)
+      assertEqual "short device parses" (Just "BuiltIn") (cliDevice options)
+      assertEqual "short config parses" (Just "x.toml") (cliConfigPath options)
+    other -> error ("expected short option parse success, got: " <> show other)
 
 testVersionCommandOutputsVersion :: IO ()
 testVersionCommandOutputsVersion = do
@@ -464,7 +476,7 @@ testEmbeddedPresetSections =
       let output = renderPresetList False (configSoundPresets config)
 
       forM_
-        ["[default]", "[basic]", "[musicbox]", "[ducktilo]", "[drumkit]", "[sparks]"]
+        ["[default]", "[basic]", "[musicbox]", "[ducktilo]", "[drumkit]", "[sparks]", "[vpaul]"]
         $ \section ->
           assertBool ("preset list contains " <> section) (section `isInfixOf` output)
       assertBool "file lists are comma-separated" ("dspark1.mp3,dspark2.mp3,dspark3.mp3" `isInfixOf` output)
@@ -488,6 +500,13 @@ testDeviceListRendering = do
 testListPresetsSparks :: IO ()
 testListPresetsSparks =
   assertBool "list presets contains sparks" ("sparks" `isInfixOf` listPresets appConfigFixture)
+
+testListPresetsVpaul :: IO ()
+testListPresetsVpaul =
+  case parseConfig defaultConfigText of
+    Left err -> error ("expected embedded config to parse: " <> show err)
+    Right config ->
+      assertBool "list presets contains vpaul" ("vpaul" `isInfixOf` listPresets config)
 
 testListPresetsNoStandaloneSpark :: IO ()
 testListPresetsNoStandaloneSpark =

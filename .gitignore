@@ -49,6 +49,7 @@ cabal.sandbox.config
 # -- Haddock/docs outputs --
 doc/
 docs/_site/
+site/
 *.aux
 *.log
 *.out

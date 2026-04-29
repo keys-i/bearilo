@@ -21,6 +21,7 @@ import System.FilePath ((</>))
 spec :: IO ()
 spec = do
   testDefaultConfigParses
+  testDefaultConfigContainsVpaul
   testInvalidTomlFails
   testNoSurprisesDefaultsFalse
   testEventAndStrategyParse
@@ -38,6 +39,20 @@ testDefaultConfigParses = do
     Right config -> do
       assertBool "expected no_surprises default False" (not (configNoSurprises config))
       assertBool "expected default preset" ("default" `elem` fmap presetName (configSoundPresets config))
+
+testDefaultConfigContainsVpaul :: IO ()
+testDefaultConfigContainsVpaul = do
+  input <- TextIO.readFile "examples/bearilo.toml"
+  case parseConfig input of
+    Left err -> error ("expected config to parse: " <> show err)
+    Right config ->
+      case filter ((== "vpaul") . presetName) (configSoundPresets config) of
+        [preset] ->
+          assertEqual
+            "vpaul preset files"
+            ["ding.mp3", "mbox1.mp3", "mbox2.mp3", "mbox3.mp3", "mbox4.mp3", "keyup.mp3"]
+            [audioFilePath file | keyConfig <- presetKeyConfigs preset, file <- keyConfigFiles keyConfig]
+        other -> error ("expected one vpaul preset, got: " <> show other)
 
 testInvalidTomlFails :: IO ()
 testInvalidTomlFails =
@@ -171,6 +186,12 @@ assertResolvedPath expected = do
 assertBool :: String -> Bool -> IO ()
 assertBool _ True = pure ()
 assertBool message False = error message
+
+assertEqual :: (Eq a, Show a) => String -> a -> a -> IO ()
+assertEqual _ expected actual
+  | expected == actual = pure ()
+assertEqual label expected actual =
+  error (label <> ": expected " <> show expected <> ", got " <> show actual)
 
 withCleanDirectory :: FilePath -> IO a -> IO a
 withCleanDirectory path action = do

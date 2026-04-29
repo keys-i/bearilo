@@ -80,3 +80,22 @@ key_config = [
     { path = "dspark6.mp3" },
   ], strategy = "random" },
 ]
+
+# vpaul
+# For Paul the GOAT, blessed by bears and lambdas.
+[[sound_preset]]
+name = "vpaul"
+key_config = [
+  { event = "press", keys = "Return", files = [
+    { path = "ding.mp3" },
+  ] },
+  { event = "press", keys = ".*", files = [
+    { path = "mbox1.mp3" },
+    { path = "mbox2.mp3" },
+    { path = "mbox3.mp3" },
+    { path = "mbox4.mp3" },
+  ], strategy = "sequential" },
+  { event = "release", keys = ".*", files = [
+    { path = "keyup.mp3" },
+  ] },
+]

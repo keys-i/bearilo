@@ -22,7 +22,7 @@ import Bearilo.Output (renderChoiceKeyConfig, renderConfigSummary, renderDeviceL
 import Bearilo.Types
 import Bearilo.Version (beariloVersion)
 import Control.Concurrent (threadDelay)
-import Control.Monad (forever, when)
+import Control.Monad (forever, unless, when)
 import Data.Foldable (traverse_)
 import Data.IORef (newIORef, readIORef, writeIORef)
 import Data.List (intercalate)
@@ -270,7 +270,7 @@ runListener logger runtime appConfig = do
         sequentialState <- readIORef sequentialRef
         let (shouldPlay, nextMemory) = shouldPlayEvent memory event
         writeIORef memoryRef nextMemory
-        when shouldPlay $
+        unless shouldPlay $
           logDebug logger ("Press suppressed: " <> eventLabel event)
         when shouldPlay $ do
           let (choices, nextSequentialState) = soundChoicesForEventWithState appConfig sequentialState event

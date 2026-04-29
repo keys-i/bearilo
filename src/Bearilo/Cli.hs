@@ -215,14 +215,14 @@ rawCliParser :: Parser RawCliOptions
 rawCliParser =
   RawCliOptions
     <$> switch (long "version" <> short 'v' <> help ("Show version (" <> "bearilo " <> beariloVersion <> ")"))
-    <*> switch (long "init" <> help "Write default config")
+    <*> switch (long "init" <> short 'i' <> help "Write default config")
     <*> switch (long "list-presets" <> help "List presets")
     <*> switch (long "list-devices" <> help "List output devices")
     -- -v is version, so verbose keeps Daktilo's capital -V spelling.
     <*> (length <$> many (flag' () (long "verbose" <> short 'V' <> help "Increase verbosity")))
-    <*> many (Text.pack <$> strOption (long "preset" <> metavar "PRESET" <> help "Select preset"))
-    <*> optional (Text.pack <$> strOption (long "device" <> metavar "DEVICE" <> help "Select output device"))
-    <*> optional (strOption (long "config" <> metavar "PATH" <> help "Use config file"))
+    <*> many (Text.pack <$> strOption (long "preset" <> short 'p' <> metavar "PRESET" <> help "Select preset"))
+    <*> optional (Text.pack <$> strOption (long "device" <> short 'd' <> metavar "DEVICE" <> help "Select output device"))
+    <*> optional (strOption (long "config" <> short 'c' <> metavar "PATH" <> help "Use config file"))
     <*> switch (long "no-surprises" <> internal)
     <*> many (option auto (long "variate-volume" <> metavar "VALUE" <> help "Apply volume variation"))
     <*> many (option auto (long "variate-tempo" <> metavar "VALUE" <> help "Apply tempo variation"))

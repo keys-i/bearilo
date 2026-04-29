@@ -1,6 +1,6 @@
 module PackagingSpec (spec) where
 
-import Control.Monad (filterM)
+import Control.Monad (filterM, forM_)
 import Data.List (isInfixOf, sort)
 import System.Directory (doesDirectoryExist, doesFileExist, listDirectory)
 import System.FilePath (normalise, takeExtension, (</>))
@@ -13,10 +13,15 @@ spec = do
   testCabalBridgeWiring
   testCabalDoesNotContainReleaseInstallerMetadata
   testExampleConfigPresent
+  testDefaultConfigContainsVpaul
   testReadmeCommands
   testReadmePresets
+  testReadmeBearVoice
+  testReadmeDaktiloOnlyAsInspiration
+  testReadmeForbiddenClaims
   testReadmePlatformNotes
-  testReadmeReleaseSections
+  testReadmeSections
+  testGithubActionsWorkflows
 
 testBridgeFiles :: IO ()
 testBridgeFiles = do
@@ -90,21 +95,40 @@ testExampleConfigPresent = do
   exists <- doesFileExist "examples/bearilo.toml"
   assertBool "examples/bearilo.toml exists" exists
 
+testDefaultConfigContainsVpaul :: IO ()
+testDefaultConfigContainsVpaul = do
+  config <- readFile "examples/bearilo.toml"
+  assertContains "default config has vpaul preset" "name = \"vpaul\"" config
+  assertContains "vpaul reuses ding" "path = \"ding.mp3\"" config
+  assertContains "vpaul reuses mbox sounds" "path = \"mbox1.mp3\"" config
+  assertContains "vpaul reuses keyup" "path = \"keyup.mp3\"" config
+
 testReadmeCommands :: IO ()
 testReadmeCommands = do
   readme <- readFile "README.md"
-  assertContains "README has install command" "cabal install exe:bearilo" readme
-  assertContains "README has build command" "cabal build all" readme
-  assertContains "README has test command" "cabal test all" readme
-  assertContains "README has local run command" "cabal run bearilo -- --help" readme
-  assertContains "README has init manual test" "cabal run bearilo -- --init" readme
-  assertContains "README has list-presets manual test" "cabal run bearilo -- --list-presets" readme
-  assertContains "README has list-devices manual test" "cabal run bearilo -- --list-devices" readme
+  assertAllContains
+    readme
+    [ ("README has install command", "cabal install exe:bearilo"),
+      ("README has build command", "cabal build all"),
+      ("README has test command", "cabal test all"),
+      ("README has local run command", "cabal run exe:bearilo -- --help"),
+      ("README has preset run command", "cabal run exe:bearilo -- --preset default"),
+      ("README has list-presets command", "cabal run exe:bearilo -- --list-presets")
+    ]
 
 testReadmePresets :: IO ()
 testReadmePresets = do
   readme <- readFile "README.md"
-  assertContains "README has sparks preset" "`sparks`" readme
+  assertAllContains
+    readme
+    [ ("README has default preset", "`default`"),
+      ("README has basic preset", "`basic`"),
+      ("README has musicbox preset", "`musicbox`"),
+      ("README has ducktilo preset", "`ducktilo`"),
+      ("README has drumkit preset", "`drumkit`"),
+      ("README has sparks preset", "`sparks`"),
+      ("README has vpaul preset", "`vpaul`")
+    ]
   assertBool
     "README does not contain standalone spark"
     (not (any ((== "spark") . trimWord) (words readme)))
@@ -112,23 +136,119 @@ testReadmePresets = do
     trimWord =
       filter (`notElem` ("`.,;:()[]#" :: String))
 
+testReadmeBearVoice :: IO ()
+testReadmeBearVoice = do
+  readme <- readFile "README.md"
+  assertAllContains
+    readme
+    [ ("README mentions Keys-i", "Written by Keys-i"),
+      ("README mentions powered by bears", "powered by bears"),
+      ("README has bear face", "ʕ•ᴥ•ʔ"),
+      ("README says Haskell command-line app", "small Haskell command-line app"),
+      ("README says IO stays at the edges", "IO at the edges"),
+      ("README says built with Cabal", "built with Cabal"),
+      ("README says not a Rust crate", "not a Rust crate"),
+      ("README has bear sign-off", "λʕ•ᴥ•ʔλ powered by bears, checked by types.")
+    ]
+
+testReadmeDaktiloOnlyAsInspiration :: IO ()
+testReadmeDaktiloOnlyAsInspiration = do
+  readme <- readFile "README.md"
+  let daktiloLines = filter ("Daktilo" `isInfixOf`) (lines readme)
+  assertBool "README mentions Daktilo" (not (null daktiloLines))
+  forM_ daktiloLines $ \line ->
+    assertBool
+      ("Daktilo mention is inspiration-only: " <> line)
+      ("inspired" `isInfixOf` line || "inspiration" `isInfixOf` line)
+
+testReadmeForbiddenClaims :: IO ()
+testReadmeForbiddenClaims = do
+  readme <- readFile "README.md"
+  assertAllNotContains
+    readme
+    [ ("README does not mention crates.io", "crates.io"),
+      ("README does not mention cargo install", "cargo install"),
+      ("README does not contain crab line", "respect crables"),
+      ("README does not claim Hackage", "Hackage"),
+      ("README does not claim Homebrew", "Homebrew"),
+      ("README does not claim MSI", "MSI"),
+      ("README does not claim MacPorts", "MacPorts"),
+      ("README does not claim binary releases", "binary releases"),
+      ("README does not claim installers", "installer")
+    ]
+
 testReadmePlatformNotes :: IO ()
 testReadmePlatformNotes = do
   readme <- readFile "README.md"
-  assertContains "README has Linux input permission note" "Linux may need permission to read input devices" readme
-  assertContains "README has Arch Linux dependency notes" "alsa-lib libxtst libxi" readme
-  assertContains "README has Alpine dependency notes" "alsa-lib-dev libxi-dev libxtst-dev" readme
-  assertContains "README has Debian dependency notes" "libasound2-dev libxi-dev libxtst-dev" readme
-  assertContains "README has event-listening prompt note" "event-listening permission prompt" readme
-  assertContains "README has Input Monitoring note" "Input Monitoring" readme
-  assertContains "README has Windows implementation note" "Windows support is implemented in source" readme
+  assertAllContains
+    readme
+    [ ("README has Linux input permission note", "may need permission to read input devices"),
+      ("README has macOS Input Monitoring note", "Input Monitoring"),
+      ("README has Windows verification note", "verify on Windows before release"),
+      ("README does not claim Wayland", "Wayland behaviour is not claimed")
+    ]
 
-testReadmeReleaseSections :: IO ()
-testReadmeReleaseSections = do
+testReadmeSections :: IO ()
+testReadmeSections = do
   readme <- readFile "README.md"
-  assertContains "README has final parity checklist" "## Final parity checklist" readme
-  assertContains "README has release notes" "## Release notes" readme
-  assertContains "README has final acceptance checklist" "## Final acceptance checklist" readme
+  assertAllContains
+    readme
+    [ ("README has project header", "# Bearilo"),
+      ("README has What is Bearilo", "## What is Bearilo?"),
+      ("README has Project Status", "## Project Status"),
+      ("README has Getting Started", "## Getting Started"),
+      ("README has Presets", "## Presets"),
+      ("README has Usage", "## Usage"),
+      ("README has Configuration", "## Configuration"),
+      ("README has Sound Variation", "## Sound Variation"),
+      ("README has Supported Platforms", "## Supported Platforms"),
+      ("README has Installation", "## Installation"),
+      ("README has Build from Source", "## Build from Source"),
+      ("README has macOS Permissions", "## macOS Permissions"),
+      ("README has Functional Design", "## Functional Design"),
+      ("README has Acknowledgements", "## Acknowledgements"),
+      ("README has Contributing", "## Contributing"),
+      ("README has License", "## License"),
+      ("README has Bear sign-off", "## Bear sign-off")
+    ]
+
+testGithubActionsWorkflows :: IO ()
+testGithubActionsWorkflows = do
+  ciExists <- doesFileExist ".github/workflows/ci.yml"
+  websiteExists <- doesFileExist ".github/workflows/website.yml"
+  assertBool "CI workflow exists" ciExists
+  assertBool "website workflow exists" websiteExists
+
+  ci <- readFile ".github/workflows/ci.yml"
+  website <- readFile ".github/workflows/website.yml"
+  siteScriptExists <- doesFileExist "scripts/build-site.sh"
+  let unsafeRunLines =
+        [ line
+          | line <- lines ci,
+            "cabal run exe:bearilo" `isInfixOf` line,
+            not (safeCliLine line)
+        ]
+
+  assertAllContains
+    website
+    [ ("website workflow grants Pages write permission", "pages: write"),
+      ("website workflow grants OIDC token permission", "id-token: write"),
+      ("website workflow deploys Pages", "actions/deploy-pages")
+    ]
+  assertBool
+    "website script exists if workflow calls it"
+    (not ("scripts/build-site.sh" `isInfixOf` website) || siteScriptExists)
+  assertNotContains "CI does not run device enumeration" "--list-devices" ci
+  assertEqual "CI does not run the normal keyboard listener" [] unsafeRunLines
+  where
+    safeCliLine line =
+      any
+        (`isInfixOf` line)
+        [ "--help",
+          "-- -v",
+          "-- --version",
+          "--list-presets"
+        ]
 
 assertContains :: String -> String -> String -> IO ()
 assertContains label expected contents =
@@ -137,6 +257,14 @@ assertContains label expected contents =
 assertNotContains :: String -> String -> String -> IO ()
 assertNotContains label unexpected contents =
   assertBool label (not (unexpected `isInfixOf` contents))
+
+assertAllContains :: String -> [(String, String)] -> IO ()
+assertAllContains contents =
+  mapM_ (\(label, expected) -> assertContains label expected contents)
+
+assertAllNotContains :: String -> [(String, String)] -> IO ()
+assertAllNotContains contents =
+  mapM_ (\(label, unexpected) -> assertNotContains label unexpected contents)
 
 assertBool :: String -> Bool -> IO ()
 assertBool _ True = pure ()
