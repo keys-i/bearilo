@@ -33,7 +33,7 @@ jobs:
         run: cabal update
 
       - name: Install HLint
-        run: cabal install hlint
+        run: cabal install --ignore-project hlint
 
       - name: Compute functional purity score
         run: |
