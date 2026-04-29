@@ -3,6 +3,8 @@ module InputSpec (spec) where
 import Bearilo.Input
   ( classifyKeyEvent,
     emptyKeyMemory,
+    normaliseRawKeyName,
+    normalizeKeyName,
     shouldPlayEvent,
     updateKeyMemory,
   )
@@ -15,6 +17,7 @@ import Bearilo.Os.Types
     unRawKeyName,
   )
 import Bearilo.Types (KeyEvent (..), KeyMemory (..))
+import Control.Monad (forM_)
 
 spec :: IO ()
 spec = do
@@ -27,6 +30,9 @@ spec = do
   testInvalidCodeWithEmptyCNameRejected
   testRawPressConverts
   testRawReleaseConverts
+  testReturnNamesNormalize
+  testRawReturnNamesConvert
+  testMacReturnKeyCodeConverts
   testRawOtherConvertsToNothing
   testRepeatedPressSuppressed
   testReleaseAllowsNextPress
@@ -83,6 +89,48 @@ testRawReleaseConverts =
     "raw release converts to app KeyReleased"
     (Just (KeyReleased "KeyA"))
     (classifyKeyEvent (raw "KeyA" RawReleased))
+
+testReturnNamesNormalize :: IO ()
+testReturnNamesNormalize =
+  forM_
+    [ ("Enter", "Return"),
+      ("\r", "Return"),
+      ("\n", "Return"),
+      ("KeyCode-36", "Return"),
+      ("KeyCode-76", "Return"),
+      ("Return", "Return"),
+      ("KeyA", "KeyA")
+    ] $ \(rawName, expected) ->
+      assertEqual ("normalizes " <> show rawName) expected (normalizeKeyName rawName)
+
+testRawReturnNamesConvert :: IO ()
+testRawReturnNamesConvert =
+  forM_
+    [ ("Enter", KeyPressed "Return"),
+      ("\r", KeyPressed "Return"),
+      ("\n", KeyPressed "Return"),
+      ("KeyCode-36", KeyPressed "Return"),
+      ("KeyCode-76", KeyPressed "Return"),
+      ("Return", KeyPressed "Return")
+    ] $ \(rawName, expected) ->
+      assertEqual
+        ("raw " <> show rawName <> " converts to Return")
+        (Just expected)
+        (classifyKeyEvent (raw rawName RawPressed))
+
+testMacReturnKeyCodeConverts :: IO ()
+testMacReturnKeyCodeConverts =
+  forM_
+    [ ("main Return", 36),
+      ("keypad Enter", 76)
+    ] $ \(label, keyCode) ->
+      case rawEventFromC keyCode 1 (Just "") of
+        Just event -> do
+          let normalized = normaliseRawKeyName event
+          assertEqual (label <> " normalises raw name") "Return" (unRawKeyName (rawKeyName normalized))
+          assertEqual (label <> " classifies as Return") (Just (KeyPressed "Return")) (classifyKeyEvent event)
+        Nothing ->
+          error ("expected raw key event for " <> label)
 
 testRawOtherConvertsToNothing :: IO ()
 testRawOtherConvertsToNothing =

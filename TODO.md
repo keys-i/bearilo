@@ -303,7 +303,7 @@ Manual test notes:
 - [x] Do not clone cargo-dist metadata because it only defines Rust release installers and targets. Source: `Cargo.toml`.
 - [x] Do not clone WiX XML unless Cabal packaging gains an MSI task. Source: `crates/daktilo/wix/main.wxs`.
 - [x] Add `test/PackagingSpec.hs` to check `bridge/` filenames and Cabal C source entries.
-- [ ] Acceptance: package builds, installs locally, and contains only the three OS C source files selected by Cabal conditionals.
+- [x] Acceptance: package builds, installs locally, and contains only the three OS C source files selected by Cabal conditionals.
 
 ## v1.0.0 — release
 
@@ -313,13 +313,18 @@ Manual test notes:
 - [ ] Run manual test `cabal run bearilo -- --list-devices`. Source: `crates/daktilo/src/main.rs`, `crates/daktilo_lib/src/audio.rs`.
 - [ ] Run manual test for `default`, `basic`, `musicbox`, `ducktilo`, `drumkit`, and `sparks`. Source: `config/bearilo.toml`.
 - [ ] Run manual test for `--config <PATH>` with valid config and invalid config. Source: `README.md`, `crates/daktilo_lib/src/config.rs`.
-- [ ] Run manual test for `--variate-volume` and `--variate-tempo` with one value and two values. Source: `crates/daktilo/src/args.rs`.
+- [ ] Run manual test that an explicit missing config path returns the explicit missing-path error. Source: `crates/daktilo/src/main.rs`, `src/Bearilo/Config.hs`.
+- [ ] Run manual test for `--variate-volume` with one value and two repeated option values. Source: `crates/daktilo/src/args.rs`, `src/Bearilo/Cli.hs`.
+- [ ] Run manual test for `--variate-tempo` with one value and two repeated option values. Source: `crates/daktilo/src/args.rs`, `src/Bearilo/Cli.hs`.
 - [ ] Run manual test for `--no-surprises` and `--preset ak47`. Source: `crates/daktilo/src/args.rs`, `crates/daktilo_lib/src/config.rs`.
-- [ ] Update `README.md` with only implemented CLI options, config fields, presets, platform notes, and install steps.
-- [ ] Add `examples/bearilo.toml` copied from implemented default config.
-- [ ] Add final parity checklist to `README.md` for CLI, config, assets, audio, keyboard input, and errors.
-- [ ] Add release notes that list source-compatible behaviour and limitations removed.
+- [x] Update `README.md` with only implemented CLI options, config fields, presets, platform notes, and install steps.
+- [x] Add `examples/bearilo.toml` copied from implemented default config.
+- [x] Add final parity checklist to `README.md` for CLI, config, assets, audio, keyboard input, and errors.
+- [x] Add release notes that list source-compatible behaviour and limitations removed.
+- [x] Add final acceptance checklist to `README.md`.
 - [ ] Acceptance: `cabal build`, `cabal test`, manual tests, README checks, and platform notes are complete.
+
+Manual release tests remain unchecked until they are actually run.
 
 ## Original daktilo limitations
 

@@ -13,6 +13,7 @@ enthumbs.db
 Desktop.ini
 
 # Local env/config
+*TODO.md
 .env*
 *.local
 

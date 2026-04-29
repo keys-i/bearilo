@@ -1,3 +1,4 @@
+-- | Shared types for OS keyboard listeners.
 module Bearilo.Os.Types
   ( RawKeyCode (..),
     RawKeyName,
@@ -24,22 +25,26 @@ import Foreign.C.String (CString, peekCString)
 import Foreign.C.Types (CInt)
 import Foreign.Ptr (FunPtr, Ptr, freeHaskellFunPtr, nullPtr)
 
+-- | Raw key code reported by the OS bridge.
 newtype RawKeyCode = RawKeyCode
   { unRawKeyCode :: Int
   }
   deriving stock (Eq, Show)
 
+-- | Non-empty raw key name reported by the OS bridge.
 newtype RawKeyName = RawKeyName
   { unRawKeyName :: Text
   }
   deriving stock (Eq, Show)
 
+-- | Raw press/release state from the OS bridge.
 data RawKeyState
   = RawPressed
   | RawReleased
   | RawOther
   deriving stock (Eq, Show)
 
+-- | Raw key event before app-level classification.
 data RawKeyEvent = RawKeyEvent
   { rawKeyCode :: RawKeyCode,
     rawKeyName :: RawKeyName,
@@ -47,6 +52,7 @@ data RawKeyEvent = RawKeyEvent
   }
   deriving stock (Eq, Show)
 
+-- | Things that can go wrong at the OS listener boundary.
 data OsHookError
   = OsListenerStartFailed String Int
   | OsListenerStopFailed String Int
@@ -55,8 +61,10 @@ data OsHookError
   | OsUnsupportedPlatform String
   deriving stock (Eq, Show)
 
+-- | Callback shape used by the C bridges.
 type CKeyCallback = CInt -> CInt -> CString -> Ptr () -> IO ()
 
+-- | Build a raw key name when the OS gave us something useful.
 mkRawKeyName :: String -> Maybe RawKeyName
 mkRawKeyName name
   | Text.null text = Nothing
@@ -64,11 +72,13 @@ mkRawKeyName name
   where
     text = Text.pack name
 
+-- | Decode the C bridge's state code.
 rawStateFromCode :: Int -> RawKeyState
 rawStateFromCode 1 = RawPressed
 rawStateFromCode 0 = RawReleased
 rawStateFromCode _ = RawOther
 
+-- | Convert C callback data into a raw key event.
 rawEventFromC :: Int -> Int -> Maybe String -> Maybe RawKeyEvent
 rawEventFromC keyCode stateCode maybeName = do
   keyName <- mkRawKeyName (fromMaybe "" maybeName) <|> fallbackKeyName
@@ -83,6 +93,7 @@ rawEventFromC keyCode stateCode maybeName = do
       | keyCode >= 0 = mkRawKeyName ("KeyCode-" <> show keyCode)
       | otherwise = Nothing
 
+-- | Run a C listener while translating callbacks into Haskell events.
 withCKeyListener ::
   String ->
   (CKeyCallback -> IO (FunPtr CKeyCallback)) ->

@@ -21,6 +21,7 @@ spec = do
   testExplicitMissingConfigPath
   testInputHasNoFfi
   testInputDoesNotImportAudio
+  testAppDoesNotOwnSoundMatching
   testRandomChoiceDeterministic
   testVariationApplicationPure
   testSequentialStatePerKeyConfig
@@ -61,6 +62,11 @@ testInputDoesNotImportAudio :: IO ()
 testInputDoesNotImportAudio = do
   contents <- readFile "src/Bearilo/Input.hs"
   assertBool "Bearilo.Input does not import Bearilo.Audio" (not ("Bearilo.Audio" `isInfixOf` contents))
+
+testAppDoesNotOwnSoundMatching :: IO ()
+testAppDoesNotOwnSoundMatching = do
+  contents <- readFile "src/Bearilo/App.hs"
+  assertBool "Bearilo.App leaves regex matching to pure audio code" (not ("Text.Regex.TDFA" `isInfixOf` contents))
 
 testRandomChoiceDeterministic :: IO ()
 testRandomChoiceDeterministic =
@@ -118,12 +124,21 @@ testListenerStartupFailureReturnsLeft = do
     runtime =
       Runtime
         { runtimeParseCli = pure (Right defaultCliOptions),
-          runtimeReadConfig = \_ -> pure (Right configFixture),
+          runtimeReadConfig = \_ _ -> pure (Right configFixture),
           runtimeWriteFile = \_ _ -> pure (),
           runtimeOutput = \_ -> pure (),
+          runtimeLogOutput = \_ -> pure (),
+          runtimeCurrentTime = pure fixedTime,
           runtimeListDevices = pure (Right []),
-          runtimeListen = \_ -> pure (Left (AppOsHookError (OsUnsupportedPlatform "test listener failure"))),
-          runtimePlay = \_ -> pure (Right ())
+          runtimeWithAudio = \action -> action testEngine,
+          runtimeListen = \_ _ -> pure (Left (AppOsHookError (OsUnsupportedPlatform "test listener failure"))),
+          runtimePlay = \_ _ -> pure (Right ()),
+          runtimeUseColor = False
+        }
+    fixedTime = read "2026-04-28 09:06:28.980578 UTC"
+    testEngine =
+      AudioEngine
+        { audioEnginePlaybackSlots = defaultPlaybackSlots
         }
 
 testEmbeddedConfigSoundsPresent :: IO ()

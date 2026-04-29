@@ -1,3 +1,4 @@
+-- | Audio loading, playback, and pure sound choice logic.
 module Bearilo.Audio
   ( applyConfiguredVolume,
     applyVariation,
@@ -5,6 +6,7 @@ module Bearilo.Audio
     chooseRandom,
     chooseSequential,
     defaultVolume,
+    effectivePlaybackParams,
     findOutputDevice,
     listOutputDevices,
     loadSound,
@@ -14,9 +16,12 @@ module Bearilo.Audio
     resampleNearest,
     resampledLength,
     resolveVariation,
+    soundChoicesForEvent,
+    soundChoicesForEventWithState,
     soundForEvent,
     soundsForKeyConfig,
     sourceIndexForRate,
+    variationPlaybackParams,
     withAudio,
   )
 where
@@ -41,19 +46,22 @@ import Data.ByteString qualified as ByteString
 import Data.Char (toLower)
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.List.NonEmpty qualified as NonEmpty
-import Data.Maybe (fromMaybe, isNothing)
+import Data.Maybe (fromMaybe, isNothing, listToMaybe)
 import Data.Text qualified as Text
 import System.Directory (doesFileExist)
 import Text.Regex.TDFA ((=~))
 
+-- | Open the SDL audio backend for an action.
 withAudio :: (AudioEngine -> IO a) -> IO (Either AudioError a)
 withAudio =
   SDL.withAudioSDL
 
+-- | Play a loaded sound through the SDL backend.
 playSound :: AudioEngine -> LoadedSound -> PlaybackParams -> IO (Either AudioError ())
 playSound =
   SDL.playSoundSDL
 
+-- | Find an output device by name, case-insensitively.
 findOutputDevice :: String -> [OutputDevice] -> Either AudioError OutputDevice
 findOutputDevice requested devices =
   case filter matches devices of
@@ -68,10 +76,12 @@ findOutputDevice requested devices =
 
     normalize = map toLower
 
+-- | List available output devices.
 listOutputDevices :: IO (Either AudioError [OutputDevice])
 listOutputDevices =
   SDL.listOutputDevices
 
+-- | Load a sound from embedded bytes or the configured file path.
 loadSound :: AudioEngine -> SoundSource -> IO (Either AudioError LoadedSound)
 loadSound _ source =
   case sourceBytes source <|> lookupEmbeddedSound path of
@@ -98,6 +108,7 @@ loadSound _ source =
           loadedSoundVolume = volumeOrDefault (sourceVolume source)
         }
 
+-- | Build a playable sound choice from a source.
 loadSoundChoice :: SoundSource -> SoundChoice
 loadSoundChoice source =
   SoundChoice
@@ -108,10 +119,12 @@ loadSoundChoice source =
               soundBytes = sourceBytes source <|> lookupEmbeddedSound (sourcePath source),
               soundVolume = volumeOrDefault (sourceVolume source)
             },
+      choiceKeyConfig = Nothing,
       choicePlaybackParams = defaultPlaybackParams,
       choiceVariation = identityVariation
     }
 
+-- | Advance sequential playback for one key config.
 nextSequentialFor :: KeyConfigId -> SequentialState -> NonEmpty Sound -> (Sound, SequentialState)
 nextSequentialFor keyConfigId (SequentialState entries) sounds =
   (sound, SequentialState nextEntries)
@@ -125,37 +138,61 @@ nextSequentialFor keyConfigId (SequentialState entries) sounds =
     nextEntries =
       (keyConfigId, nextIndex) : filter ((/= keyConfigId) . fst) entries
 
+-- | Pick the first sound choice for an event.
 soundForEvent :: AppConfig -> KeyEvent -> SoundChoice
 soundForEvent appConfig event =
-  fromMaybe noSound firstMatchingSound
+  fromMaybe noSound (listToMaybe (soundChoicesForEvent appConfig event))
+
+-- | Pick sound choices for all matching presets.
+soundChoicesForEvent :: AppConfig -> KeyEvent -> [SoundChoice]
+soundChoicesForEvent appConfig event =
+  fst (soundChoicesForEventWithState appConfig emptySequentialState event)
+
+-- | Pick sound choices while carrying sequential playback state.
+soundChoicesForEventWithState :: AppConfig -> SequentialState -> KeyEvent -> ([SoundChoice], SequentialState)
+soundChoicesForEventWithState appConfig initialState event =
+  foldl chooseForPreset ([], initialState) (zip [0 :: Int ..] (appPresets appConfig))
   where
     (eventKind, eventKeyName) =
       eventDetails event
 
-    firstMatchingSound =
-      case matches of
-        [] -> Nothing
-        (preset, keyConfig, sounds) : _ ->
-          Just
-            SoundChoice
-              { choiceSound = Just (chooseByStrategy (keyConfigStrategy keyConfig) sounds),
-                choicePlaybackParams = defaultPlaybackParams,
-                choiceVariation =
-                  resolveVariation
-                    (cliVariation appConfig)
-                    (keyConfigVariation keyConfig)
-                    (presetVariation preset)
-              }
-      where
-        matches =
-          [ (preset, keyConfig, sounds)
-            | preset <- appPresets appConfig,
-              not (keyDisabled eventKeyName preset),
-              keyConfig <- presetKeyConfigs preset,
-              keyConfigEvent keyConfig == eventKind,
-              keyMatches (keyConfigKeys keyConfig) eventKeyName,
-              Just sounds <- [soundsForKeyConfig keyConfig]
-          ]
+    chooseForPreset (choices, state) (presetIndex, preset) =
+      case matchingConfigs preset of
+        [] -> (choices, state)
+        (keyConfigIndex, keyConfig, sounds) : _ ->
+          let keyConfigId = KeyConfigId (Text.unpack (presetName preset) <> ":" <> show presetIndex <> ":" <> show keyConfigIndex)
+              (sound, nextState) = chooseSound state keyConfigId keyConfig sounds
+              variation =
+                resolveVariation
+                  (cliVariation appConfig)
+                  (keyConfigVariation keyConfig)
+                  (presetVariation preset)
+              (playbackParams, _) =
+                variationPlaybackParams (RandomSeed (presetIndex * 1000 + keyConfigIndex)) variation defaultPlaybackParams
+              choice =
+                SoundChoice
+                  { choiceSound = Just sound,
+                    choiceKeyConfig = Just keyConfig,
+                    choicePlaybackParams = playbackParams,
+                    choiceVariation = variation
+                  }
+           in (choices <> [choice], nextState)
+
+    matchingConfigs preset =
+      [ (keyConfigIndex, keyConfig, sounds)
+        | not (keyDisabled eventKeyName preset),
+          not (returnReleaseSuppressed preset),
+          (keyConfigIndex, keyConfig) <- zip [0 :: Int ..] (presetKeyConfigs preset),
+          keyConfigEvent keyConfig == eventKind,
+          keyMatches (keyConfigKeys keyConfig) eventKeyName,
+          Just sounds <- [soundsForKeyConfig keyConfig]
+      ]
+
+    chooseSound state keyConfigId keyConfig sounds =
+      case keyConfigStrategy keyConfig of
+        Nothing -> (chooseFirst sounds, state)
+        Just Random -> (fst (chooseRandom (RandomSeed 0) sounds), state)
+        Just Sequential -> nextSequentialFor keyConfigId state sounds
 
     eventDetails KeyPress =
       (KeyPress, Text.empty)
@@ -181,13 +218,17 @@ soundForEvent appConfig event =
     keyMatches pattern observedKeyName =
       Text.unpack observedKeyName =~ Text.unpack pattern
 
-    chooseByStrategy Nothing sounds =
-      chooseFirst sounds
-    chooseByStrategy (Just Random) sounds =
-      fst (chooseRandom (RandomSeed 0) sounds)
-    chooseByStrategy (Just Sequential) sounds =
-      fst (chooseSequential (SequentialIndex 0) sounds)
+    returnReleaseSuppressed preset =
+      eventKind == KeyRelease
+        && eventKeyName == Text.pack "Return"
+        && any isReturnPressConfig (presetKeyConfigs preset)
 
+    isReturnPressConfig keyConfig =
+      keyConfigEvent keyConfig == KeyPress
+        && keyConfigKeys keyConfig /= Text.pack ".*"
+        && keyMatches (keyConfigKeys keyConfig) (Text.pack "Return")
+
+-- | Turn configured files into non-empty sounds when possible.
 soundsForKeyConfig :: KeyConfig -> Maybe (NonEmpty Sound)
 soundsForKeyConfig keyConfig =
   NonEmpty.nonEmpty (map toSound (keyConfigFiles keyConfig))
@@ -195,10 +236,12 @@ soundsForKeyConfig keyConfig =
     toSound file =
       soundFromAudioFile file (lookupEmbeddedSound (audioFilePath file))
 
+-- | Choose the first configured sound.
 chooseFirst :: NonEmpty Sound -> Sound
 chooseFirst (sound :| _) =
   sound
 
+-- | Choose the next sound in sequence.
 chooseSequential :: SequentialIndex -> NonEmpty Sound -> (Sound, SequentialIndex)
 chooseSequential (SequentialIndex index) sounds =
   (NonEmpty.toList sounds !! currentIndex, SequentialIndex nextIndex)
@@ -207,6 +250,7 @@ chooseSequential (SequentialIndex index) sounds =
     currentIndex = index `mod` count
     nextIndex = (currentIndex + 1) `mod` count
 
+-- | Choose a deterministic pseudo-random sound from a seed.
 chooseRandom :: RandomSeed -> NonEmpty Sound -> (Sound, RandomSeed)
 chooseRandom (RandomSeed seed) sounds =
   (NonEmpty.toList sounds !! index, RandomSeed nextSeed)
@@ -214,6 +258,7 @@ chooseRandom (RandomSeed seed) sounds =
     nextSeed = (seed * 1103515245 + 12345) `mod` 2147483648
     index = nextSeed `mod` NonEmpty.length sounds
 
+-- | Resolve variation precedence: CLI, then key config, then preset.
 resolveVariation ::
   Maybe SoundVariation ->
   Maybe SoundVariation ->
@@ -228,6 +273,7 @@ resolveVariation Nothing Nothing (Just variation) =
 resolveVariation Nothing Nothing Nothing =
   identityVariation
 
+-- | Apply a volume variation in one direction.
 applyVariation :: VariationDirection -> SoundVariation -> Double -> Double
 applyVariation direction variation base =
   base * factor
@@ -241,10 +287,38 @@ applyVariation direction variation base =
               VariationDown -> negate (variationDown range)
               VariationUp -> variationUp range
 
+-- | Apply volume and tempo variation with a deterministic seed.
+variationPlaybackParams :: RandomSeed -> SoundVariation -> PlaybackParams -> (PlaybackParams, RandomSeed)
+variationPlaybackParams seed variation params =
+  ( params
+      { playbackVolume = playbackVolume params * volumeFactor,
+        playbackTempo = playbackTempo params * tempoFactor
+      },
+    seedAfterTempo
+  )
+  where
+    (volumeFactor, seedAfterVolume) =
+      variationFactor seed (soundVariationVolume variation)
+
+    (tempoFactor, seedAfterTempo) =
+      variationFactor seedAfterVolume (soundVariationTempo variation)
+
+-- | Fold configured sound volume into playback params once.
+effectivePlaybackParams :: SoundChoice -> PlaybackParams
+effectivePlaybackParams choice =
+  case choiceSound choice of
+    Nothing -> choicePlaybackParams choice
+    Just sound ->
+      (choicePlaybackParams choice)
+        { playbackVolume = playbackVolume (choicePlaybackParams choice) * soundVolume sound
+        }
+
+-- | Apply configured file volume to playback volume.
 applyConfiguredVolume :: Double -> Double -> Double
 applyConfiguredVolume playbackVolume configuredVolume =
   playbackVolume * configuredVolume
 
+-- | Default volume when config leaves it out.
 defaultVolume :: Double
 defaultVolume =
   1.0
@@ -260,6 +334,7 @@ noSound :: SoundChoice
 noSound =
   SoundChoice
     { choiceSound = Nothing,
+      choiceKeyConfig = Nothing,
       choicePlaybackParams = defaultPlaybackParams,
       choiceVariation = identityVariation
     }
@@ -275,3 +350,19 @@ soundFromAudioFile file bytes =
 volumeOrDefault :: Maybe Double -> Double
 volumeOrDefault =
   fromMaybe defaultVolume
+
+variationFactor :: RandomSeed -> Maybe VariationRange -> (Double, RandomSeed)
+variationFactor seed Nothing =
+  (1.0, seed)
+variationFactor seed (Just range) =
+  (1.0 + unit * (variationDown range + variationUp range) - variationDown range, nextSeed)
+  where
+    (unit, nextSeed) =
+      randomUnit seed
+
+randomUnit :: RandomSeed -> (Double, RandomSeed)
+randomUnit (RandomSeed seed) =
+  (fromIntegral nextSeed / 2147483648.0, RandomSeed nextSeed)
+  where
+    nextSeed =
+      (seed * 1103515245 + 12345) `mod` 2147483648

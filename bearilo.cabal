@@ -20,7 +20,7 @@ name:               bearilo
 -- PVP summary:     +-+------- breaking API changes
 --                  | | +----- non-breaking API additions
 --                  | | | +--- code changes with no API change
-version:            0.6.0.0
+version:            1.0.0.0
 
 -- A short (one-line) description of the package.
 synopsis:
@@ -104,13 +104,20 @@ library
         Bearilo.Config
         Bearilo.Error
         Bearilo.Input
+        Bearilo.Logger
         Bearilo.Os
         Bearilo.Os.Types
+        Bearilo.Output
         Bearilo.Types
+        Bearilo.Version
+
+    other-modules:
+        Paths_bearilo
 
     -- Other library packages from which modules are imported.
     build-depends:
         base >=4.17 && <5,
+        ansi-terminal,
         bytestring,
         directory,
         filepath,
@@ -120,7 +127,8 @@ library
         regex-tdfa,
         sdl2,
         sdl2-mixer,
-        text
+        text,
+        time
 
     -- Linux C keyboard hook bridge.
     if os(linux)
@@ -200,7 +208,8 @@ test-suite bearilo-test
         bytestring,
         directory,
         filepath,
-        text
+        text,
+        time
 
     -- Directories containing test source files.
     hs-source-dirs:   test

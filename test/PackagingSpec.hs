@@ -2,7 +2,7 @@ module PackagingSpec (spec) where
 
 import Control.Monad (filterM)
 import Data.List (isInfixOf, sort)
-import System.Directory (doesDirectoryExist, listDirectory)
+import System.Directory (doesDirectoryExist, doesFileExist, listDirectory)
 import System.FilePath (normalise, takeExtension, (</>))
 
 spec :: IO ()
@@ -12,8 +12,11 @@ spec = do
   testCabalComponents
   testCabalBridgeWiring
   testCabalDoesNotContainReleaseInstallerMetadata
+  testExampleConfigPresent
   testReadmeCommands
+  testReadmePresets
   testReadmePlatformNotes
+  testReadmeReleaseSections
 
 testBridgeFiles :: IO ()
 testBridgeFiles = do
@@ -82,22 +85,50 @@ testCabalDoesNotContainReleaseInstallerMetadata = do
   assertNotContains "cabal does not mention cargo-dist" "cargo-dist" cabal
   assertNotContains "cabal does not mention wix" "wix" cabal
 
+testExampleConfigPresent :: IO ()
+testExampleConfigPresent = do
+  exists <- doesFileExist "examples/bearilo.toml"
+  assertBool "examples/bearilo.toml exists" exists
+
 testReadmeCommands :: IO ()
 testReadmeCommands = do
   readme <- readFile "README.md"
   assertContains "README has install command" "cabal install exe:bearilo" readme
   assertContains "README has build command" "cabal build all" readme
   assertContains "README has test command" "cabal test all" readme
-  assertContains "README has local run command" "cabal run exe:bearilo -- --help" readme
+  assertContains "README has local run command" "cabal run bearilo -- --help" readme
+  assertContains "README has init manual test" "cabal run bearilo -- --init" readme
+  assertContains "README has list-presets manual test" "cabal run bearilo -- --list-presets" readme
+  assertContains "README has list-devices manual test" "cabal run bearilo -- --list-devices" readme
+
+testReadmePresets :: IO ()
+testReadmePresets = do
+  readme <- readFile "README.md"
+  assertContains "README has sparks preset" "`sparks`" readme
+  assertBool
+    "README does not contain standalone spark"
+    (not (any (== "spark") (map trimWord (words readme))))
+  where
+    trimWord =
+      filter (`notElem` ("`.,;:()[]#" :: String))
 
 testReadmePlatformNotes :: IO ()
 testReadmePlatformNotes = do
   readme <- readFile "README.md"
+  assertContains "README has Linux input permission note" "Linux may need permission to read input devices" readme
   assertContains "README has Arch Linux dependency notes" "alsa-lib libxtst libxi" readme
   assertContains "README has Alpine dependency notes" "alsa-lib-dev libxi-dev libxtst-dev" readme
   assertContains "README has Debian dependency notes" "libasound2-dev libxi-dev libxtst-dev" readme
+  assertContains "README has event-listening prompt note" "event-listening permission prompt" readme
   assertContains "README has Input Monitoring note" "Input Monitoring" readme
-  assertContains "README has Windows support note" "No extra permission step was found" readme
+  assertContains "README has Windows implementation note" "Windows support is implemented in source" readme
+
+testReadmeReleaseSections :: IO ()
+testReadmeReleaseSections = do
+  readme <- readFile "README.md"
+  assertContains "README has final parity checklist" "## Final parity checklist" readme
+  assertContains "README has release notes" "## Release notes" readme
+  assertContains "README has final acceptance checklist" "## Final acceptance checklist" readme
 
 assertContains :: String -> String -> String -> IO ()
 assertContains label expected contents =

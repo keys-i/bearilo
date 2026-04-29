@@ -1,3 +1,4 @@
+-- | Core config and app types.
 module Bearilo.Types
   ( Config (..),
     SoundPreset (..),
@@ -16,17 +17,21 @@ where
 
 import Data.Text (Text)
 
+-- | Preset names come from config or CLI.
 type PresetName = Text
 
+-- | Parsed Bearilo config.
 data Config = Config
   { configSoundPresets :: [SoundPreset],
     configNoSurprises :: Bool
   }
   deriving stock (Eq, Show)
 
+-- | Config after validation.
 newtype ValidConfig = ValidConfig Config
   deriving stock (Eq, Show)
 
+-- | Config ready for the runtime.
 data AppConfig = AppConfig
   { appPresets :: [SoundPreset],
     appDevice :: Maybe Text,
@@ -36,6 +41,7 @@ data AppConfig = AppConfig
   }
   deriving stock (Eq, Show)
 
+-- | One named sound preset.
 data SoundPreset = SoundPreset
   { presetName :: PresetName,
     presetKeyConfigs :: [KeyConfig],
@@ -44,6 +50,7 @@ data SoundPreset = SoundPreset
   }
   deriving stock (Eq, Show)
 
+-- | One key-matching rule inside a preset.
 data KeyConfig = KeyConfig
   { keyConfigEvent :: KeyEvent,
     keyConfigKeys :: Text,
@@ -53,6 +60,7 @@ data KeyConfig = KeyConfig
   }
   deriving stock (Eq, Show)
 
+-- | Config event kinds and observed key events.
 data KeyEvent
   = KeyPress
   | KeyRelease
@@ -60,28 +68,33 @@ data KeyEvent
   | KeyReleased Text
   deriving stock (Eq, Show)
 
+-- | Keys currently remembered as pressed.
 newtype KeyMemory = KeyMemory
   { pressedKeys :: [Text]
   }
   deriving stock (Eq, Show)
 
+-- | A configured audio file.
 data AudioFile = AudioFile
   { audioFilePath :: FilePath,
     audioFileVolume :: Maybe Double
   }
   deriving stock (Eq, Show)
 
+-- | How a key config chooses among its files.
 data PlaybackStrategy
   = Random
   | Sequential
   deriving stock (Eq, Show)
 
+-- | Optional volume and tempo variation.
 data SoundVariation = SoundVariation
   { soundVariationVolume :: Maybe VariationRange,
     soundVariationTempo :: Maybe VariationRange
   }
   deriving stock (Eq, Show)
 
+-- | Down/up variation range.
 data VariationRange = VariationRange
   { variationDown :: Double,
     variationUp :: Double

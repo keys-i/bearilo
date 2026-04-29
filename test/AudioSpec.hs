@@ -36,6 +36,9 @@ spec = do
   testSoundForEventPress
   testSoundForEventRelease
   testVariationPrecedence
+  testFallbackKeyVariationChangesPlaybackParams
+  testReturnWithoutVariationStaysIdentity
+  testDefaultReturnReleaseSilent
   testVariationDefaultsToIdentity
   testVolumeDefault
   testConfiguredVolumeMultipliesPlaybackVolume
@@ -114,11 +117,19 @@ testVariationPrecedence = do
     "CLI variation wins"
     cliVariation
     (choiceVariation (soundForEvent cliVariationConfig (KeyPressed (txt "a"))))
+  assertEqual
+    "CLI variation drives playback params"
+    (fst (variationPlaybackParams (RandomSeed 0) cliVariation defaultPlaybackParams))
+    (choicePlaybackParams (soundForEvent cliVariationConfig (KeyPressed (txt "a"))))
 
   assertEqual
     "key variation wins when CLI variation is absent"
     keyVariation
     (resolveVariation Nothing (Just keyVariation) (Just presetLevelVariation))
+  assertEqual
+    "key variation drives selected choice when CLI variation is absent"
+    keyVariation
+    (choiceVariation (soundForEvent appConfig {appPresets = [variationPreset]} (KeyPressed (txt "a"))))
 
   assertEqual
     "preset variation is used when CLI and key variations are absent"
@@ -131,6 +142,29 @@ testVariationPrecedence = do
           appTempoVariation = soundVariationTempo cliVariation,
           appPresets = [variationPreset]
         }
+
+testFallbackKeyVariationChangesPlaybackParams :: IO ()
+testFallbackKeyVariationChangesPlaybackParams = do
+  let params =
+        choicePlaybackParams
+          (soundForEvent appConfig {appPresets = [defaultLikePreset]} (KeyPressed (txt "KeyC")))
+
+  assertBool "fallback variation changes volume" (playbackVolume params /= 1.0)
+  assertBool "fallback variation changes tempo" (playbackTempo params /= 1.0)
+
+testReturnWithoutVariationStaysIdentity :: IO ()
+testReturnWithoutVariationStaysIdentity =
+  assertEqual
+    "Return config without variation keeps identity params"
+    defaultPlaybackParams
+    (choicePlaybackParams (soundForEvent appConfig {appPresets = [defaultLikePreset]} (KeyPressed (txt "Return"))))
+
+testDefaultReturnReleaseSilent :: IO ()
+testDefaultReturnReleaseSilent =
+  assertEqual
+    "Return release does not also play wildcard release"
+    []
+    (soundChoicesForEvent appConfig {appPresets = [defaultLikePreset]} (KeyReleased (txt "Return")))
 
 testVariationDefaultsToIdentity :: IO ()
 testVariationDefaultsToIdentity = do
@@ -401,6 +435,23 @@ variationPreset =
       presetVariation = Just presetLevelVariation
     }
 
+defaultLikePreset :: SoundPreset
+defaultLikePreset =
+  SoundPreset
+    { presetName = txt "default",
+      presetKeyConfigs =
+        [ pressConfig (txt "Return") [audioFile "ding.mp3"],
+          (pressConfig (txt ".*") [audioFile "keydown.mp3"])
+            { keyConfigVariation = Just defaultVariation
+            },
+          (releaseConfig (txt ".*") [audioFile "keyup.mp3"])
+            { keyConfigVariation = Just defaultVariation
+            }
+        ],
+      presetDisabledKeys = [],
+      presetVariation = Nothing
+    }
+
 pressConfig :: Text -> [AudioFile] -> KeyConfig
 pressConfig keys files =
   KeyConfig
@@ -447,6 +498,13 @@ presetLevelVariation :: SoundVariation
 presetLevelVariation =
   volumeVariation 0.1 0.1
 
+defaultVariation :: SoundVariation
+defaultVariation =
+  SoundVariation
+    { soundVariationVolume = Just VariationRange {variationDown = 0.1, variationUp = 0.1},
+      soundVariationTempo = Just VariationRange {variationDown = 0.05, variationUp = 0.05}
+    }
+
 volumeVariation :: Double -> Double -> SoundVariation
 volumeVariation down up =
   SoundVariation
@@ -462,6 +520,10 @@ volumeVariation down up =
 txt :: String -> Text
 txt =
   Text.pack
+
+assertBool :: String -> Bool -> IO ()
+assertBool _ True = pure ()
+assertBool message False = error message
 
 assertEqual :: (Eq a, Show a) => String -> a -> a -> IO ()
 assertEqual _ expected actual

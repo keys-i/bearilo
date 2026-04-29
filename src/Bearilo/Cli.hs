@@ -1,8 +1,10 @@
+-- | Command line parsing for Bearilo.
 module Bearilo.Cli
   ( CliCommand (..),
     CliEnv (..),
     CliError (..),
     CliOptions (..),
+    cliCommand,
     cliEnvFromPairs,
     defaultCliEnv,
     defaultCliOptions,
@@ -14,23 +16,32 @@ module Bearilo.Cli
   )
 where
 
+import Bearilo.Output (beariloHelpText)
 import Bearilo.Types (PresetName, VariationRange (..))
+import Bearilo.Version (beariloVersion)
 import Data.Maybe (catMaybes, fromMaybe)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Options.Applicative
-import System.Environment (getArgs, lookupEnv)
+import Options.Applicative.Help.Pretty qualified as Pretty
+import System.Environment (lookupEnv)
 import Text.Read (readMaybe)
 
+-- | The command selected by parsed flags.
 data CliCommand
   = CliRun
+  | CliVersion
   | CliInit
   | CliListPresets
   | CliListDevices
   deriving stock (Eq, Show)
 
+-- | Parsed command line options.
 data CliOptions = CliOptions
-  { cliCommand :: CliCommand,
+  { cliShowVersion :: Bool,
+    cliInit :: Bool,
+    cliListPresets :: Bool,
+    cliListDevices :: Bool,
     cliVerbose :: Int,
     cliPresets :: [PresetName],
     cliDevice :: Maybe Text,
@@ -41,6 +52,7 @@ data CliOptions = CliOptions
   }
   deriving stock (Eq, Show)
 
+-- | Options that can come from environment variables.
 data CliEnv = CliEnv
   { envVerbose :: Maybe Int,
     envPresets :: [PresetName],
@@ -51,13 +63,17 @@ data CliEnv = CliEnv
   }
   deriving stock (Eq, Show)
 
+-- | CLI parser failures we keep as values in tests.
 data CliError
   = CliParseError String
   | CliInvalidVariation String
   deriving stock (Eq, Show)
 
 data RawCliOptions = RawCliOptions
-  { rawCommand :: CliCommand,
+  { rawShowVersion :: Bool,
+    rawInit :: Bool,
+    rawListPresets :: Bool,
+    rawListDevices :: Bool,
     rawVerbose :: Int,
     rawPresets :: [PresetName],
     rawDevice :: Maybe Text,
@@ -68,10 +84,14 @@ data RawCliOptions = RawCliOptions
   }
   deriving stock (Eq, Show)
 
+-- | Default options before flags or environment values are applied.
 defaultCliOptions :: CliOptions
 defaultCliOptions =
   CliOptions
-    { cliCommand = CliRun,
+    { cliShowVersion = False,
+      cliInit = False,
+      cliListPresets = False,
+      cliListDevices = False,
       cliVerbose = 0,
       cliPresets = [],
       cliDevice = Nothing,
@@ -81,6 +101,7 @@ defaultCliOptions =
       cliTempoVariation = Nothing
     }
 
+-- | Empty environment-derived options.
 defaultCliEnv :: CliEnv
 defaultCliEnv =
   CliEnv
@@ -92,17 +113,19 @@ defaultCliEnv =
       envTempoVariation = Nothing
     }
 
+-- | Parse the real process arguments and environment.
 parseCli :: IO CliOptions
 parseCli = do
-  args <- getArgs
+  rawOptions <- execParser (cliParserInfo True)
   env <- readCliEnv
-  case parseCliPure args of
+  case rawToCliOptions rawOptions of
     Left err -> ioError (userError (show err))
     Right options -> pure (mergeCliEnv env options)
 
+-- | Parse CLI args without touching IO.
 parseCliPure :: [String] -> Either CliError CliOptions
 parseCliPure args =
-  case execParserPure defaultPrefs cliParserInfo args of
+  case execParserPure defaultPrefs (cliParserInfo False) args of
     Success rawOptions -> rawToCliOptions rawOptions
     Failure failure ->
       let (message, _) = renderFailure failure "bearilo"
@@ -110,6 +133,7 @@ parseCliPure args =
     CompletionInvoked _ ->
       Left (CliParseError "completion invoked")
 
+-- | Read Bearilo's supported environment variables.
 readCliEnv :: IO CliEnv
 readCliEnv = do
   pairs <-
@@ -128,6 +152,7 @@ readCliEnv = do
 
   pure (cliEnvFromPairs (catMaybes pairs))
 
+-- | Build env options from name/value pairs.
 cliEnvFromPairs :: [(String, String)] -> CliEnv
 cliEnvFromPairs pairs =
   CliEnv
@@ -142,6 +167,7 @@ cliEnvFromPairs pairs =
     eitherToMaybe (Right parsedValue) = Just parsedValue
     eitherToMaybe (Left _) = Nothing
 
+-- | Merge environment values without erasing explicit CLI options.
 mergeCliEnv :: CliEnv -> CliOptions -> CliOptions
 mergeCliEnv env options =
   options
@@ -159,6 +185,16 @@ mergeCliEnv env options =
       cliTempoVariation = cliTempoVariation options <|> envTempoVariation env
     }
 
+-- | Work out which command branch should run.
+cliCommand :: CliOptions -> CliCommand
+cliCommand options
+  | cliShowVersion options = CliVersion
+  | cliInit options = CliInit
+  | cliListPresets options = CliListPresets
+  | cliListDevices options = CliListDevices
+  | otherwise = CliRun
+
+-- | Turn one or two variation values into a range.
 variationFromCliValues :: [Double] -> Either String VariationRange
 variationFromCliValues [amount] =
   Right VariationRange {variationDown = amount, variationUp = amount}
@@ -167,20 +203,23 @@ variationFromCliValues [down, up] =
 variationFromCliValues _ =
   Left "expected one or two variation values"
 
-cliParserInfo :: ParserInfo RawCliOptions
-cliParserInfo =
+cliParserInfo :: Bool -> ParserInfo RawCliOptions
+cliParserInfo useColor =
   info
-    (helper <*> versionOption <*> rawCliParser)
-    (fullDesc <> progDesc "Turn keyboard input into typewriter sound effects")
-  where
-    versionOption =
-      infoOption "bearilo 0.5.1.2" (long "version" <> help "Show version")
+    (helper <*> rawCliParser)
+    ( fullDesc
+        <> headerDoc (Just (Pretty.vcat (map Pretty.pretty (lines (beariloHelpText useColor)))))
+    )
 
 rawCliParser :: Parser RawCliOptions
 rawCliParser =
   RawCliOptions
-    <$> commandParser
-    <*> (length <$> many (flag' () (long "verbose" <> short 'v' <> help "Increase verbosity")))
+    <$> switch (long "version" <> short 'v' <> help ("Show version (" <> "bearilo " <> beariloVersion <> ")"))
+    <*> switch (long "init" <> help "Write default config")
+    <*> switch (long "list-presets" <> help "List presets")
+    <*> switch (long "list-devices" <> help "List output devices")
+    -- -v is version, so verbose keeps Daktilo's capital -V spelling.
+    <*> (length <$> many (flag' () (long "verbose" <> short 'V' <> help "Increase verbosity")))
     <*> many (Text.pack <$> strOption (long "preset" <> metavar "PRESET" <> help "Select preset"))
     <*> optional (Text.pack <$> strOption (long "device" <> metavar "DEVICE" <> help "Select output device"))
     <*> optional (strOption (long "config" <> metavar "PATH" <> help "Use config file"))
@@ -188,20 +227,16 @@ rawCliParser =
     <*> many (option auto (long "variate-volume" <> metavar "VALUE" <> help "Apply volume variation"))
     <*> many (option auto (long "variate-tempo" <> metavar "VALUE" <> help "Apply tempo variation"))
 
-commandParser :: Parser CliCommand
-commandParser =
-  flag' CliInit (long "init" <> help "Write default config")
-    <|> flag' CliListPresets (long "list-presets" <> help "List presets")
-    <|> flag' CliListDevices (long "list-devices" <> help "List output devices")
-    <|> pure CliRun
-
 rawToCliOptions :: RawCliOptions -> Either CliError CliOptions
 rawToCliOptions rawOptions = do
   volumeVariation <- optionalVariation (rawVolumeVariation rawOptions)
   tempoVariation <- optionalVariation (rawTempoVariation rawOptions)
   pure
     CliOptions
-      { cliCommand = rawCommand rawOptions,
+      { cliShowVersion = rawShowVersion rawOptions,
+        cliInit = rawInit rawOptions,
+        cliListPresets = rawListPresets rawOptions,
+        cliListDevices = rawListDevices rawOptions,
         cliVerbose = rawVerbose rawOptions,
         cliPresets = rawPresets rawOptions,
         cliDevice = rawDevice rawOptions,

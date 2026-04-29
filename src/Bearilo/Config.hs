@@ -1,16 +1,22 @@
+-- | Parse config files and merge them with CLI options.
 module Bearilo.Config
-  ( parseConfig,
-    validateConfig,
-    resolveConfigPath,
+  ( applyNoSurprises,
     mergeConfig,
+    parseConfig,
+    resolveConfigPath,
     parseKeyEvent,
     parsePlaybackStrategy,
+    resolveHiddenPreset,
+    selectDefaultPreset,
+    selectPresets,
+    validateConfig,
   )
 where
 
 import Bearilo.Cli (CliOptions (..))
 import Bearilo.Error (ConfigError (..))
 import Bearilo.Types
+import Control.Applicative ((<|>))
 import Control.Monad (void)
 import Data.Foldable (traverse_)
 import Data.List (find)
@@ -39,7 +45,6 @@ import Text.Parsec
     skipMany,
     string,
     try,
-    (<|>),
   )
 import Text.Parsec.Text (Parser)
 
@@ -62,12 +67,14 @@ data TomlDocument = TomlDocument
   }
   deriving stock (Eq, Show)
 
+-- | Parse Bearilo's small TOML config format.
 parseConfig :: Text -> Either ConfigError Config
 parseConfig input =
   case parse tomlDocument "bearilo config" input of
     Left err -> Left (ConfigParseError (show err))
     Right document -> decodeDocument document
 
+-- | Check config rules that are easier to catch before playback.
 validateConfig :: Config -> Either ConfigError ValidConfig
 validateConfig config = do
   traverse_ validatePreset (configSoundPresets config)
@@ -83,6 +90,7 @@ validateConfig config = do
         [] -> Left (NoAudioFiles (Text.unpack (presetName preset)))
         _ -> Right ()
 
+-- | Find the config file Bearilo should use.
 resolveConfigPath :: Maybe FilePath -> IO (Either ConfigError FilePath)
 resolveConfigPath (Just path) = do
   exists <- doesFileExist path
@@ -104,36 +112,83 @@ resolveConfigPath Nothing = do
       exists <- doesFileExist path
       if exists then pure (Right path) else firstExisting rest
 
+-- | Merge CLI options into a parsed config.
 mergeConfig :: CliOptions -> Config -> Either ConfigError AppConfig
 mergeConfig options config = do
-  let requested =
-        case cliPresets options of
-          [] -> [Text.pack "default"]
-          names -> names
-
-  presets <- traverse findPreset requested
+  let configWithNoSurprises =
+        applyNoSurprises (cliNoSurprises options) config
+      noSurprises =
+        configNoSurprises configWithNoSurprises
+  presets <- selectPresets configWithNoSurprises (cliPresets options)
 
   pure
     AppConfig
       { appPresets = presets,
         appDevice = cliDevice options,
-        appNoSurprises = cliNoSurprises options || configNoSurprises config,
+        appNoSurprises = noSurprises,
         appVolumeVariation = cliVolumeVariation options,
         appTempoVariation = cliTempoVariation options
       }
-  where
-    findPreset name =
-      maybe
-        (Left (PresetNotFound (Text.unpack name)))
-        Right
-        (find ((== name) . presetName) (configSoundPresets config))
 
+-- | Select requested presets, or the default preset when none are named.
+selectPresets :: Config -> [PresetName] -> Either ConfigError [SoundPreset]
+selectPresets config [] =
+  (: []) <$> selectDefaultPreset config
+selectPresets config names =
+  traverse selectPreset names
+  where
+    selectPreset name =
+      case resolveHiddenPreset (configNoSurprises config) name <|> find ((== name) . presetName) (configSoundPresets config) of
+        Just preset -> Right preset
+        Nothing -> Left (PresetNotFound (Text.unpack name))
+
+-- | Find the configured default preset.
+selectDefaultPreset :: Config -> Either ConfigError SoundPreset
+selectDefaultPreset config =
+  case find ((== Text.pack "default") . presetName) (configSoundPresets config) of
+    Just preset -> Right preset
+    Nothing -> Left (PresetNotFound "default")
+
+-- | Apply the CLI no-surprises switch to config.
+applyNoSurprises :: Bool -> Config -> Config
+applyNoSurprises enabled config =
+  config {configNoSurprises = enabled || configNoSurprises config}
+
+-- | Return Bearilo's hidden preset when it is allowed.
+resolveHiddenPreset :: Bool -> PresetName -> Maybe SoundPreset
+resolveHiddenPreset noSurprises name
+  | name == Text.pack "ak47" = Just hiddenPreset
+  | name == Text.pack "__random_surprise__" && not noSurprises = Just hiddenPreset
+  | otherwise = Nothing
+  where
+    hiddenPreset =
+      SoundPreset
+        { presetName = Text.pack "ak47",
+          presetDisabledKeys = [],
+          presetVariation = Nothing,
+          presetKeyConfigs =
+            [ KeyConfig
+                { keyConfigEvent = KeyPress,
+                  keyConfigKeys = Text.pack ".*",
+                  keyConfigFiles =
+                    [ AudioFile {audioFilePath = "mbox10.mp3", audioFileVolume = Nothing},
+                      AudioFile {audioFilePath = "mbox11.mp3", audioFileVolume = Nothing},
+                      AudioFile {audioFilePath = "mbox9.mp3", audioFileVolume = Nothing}
+                    ],
+                  keyConfigStrategy = Just Random,
+                  keyConfigVariation = Nothing
+                }
+            ]
+        }
+
+-- | Parse a config event name.
 parseKeyEvent :: Text -> Either ConfigError KeyEvent
 parseKeyEvent value
   | value == Text.pack "press" = Right KeyPress
   | value == Text.pack "release" = Right KeyRelease
   | otherwise = Left (InvalidKeyEvent (Text.unpack value))
 
+-- | Parse a playback strategy name.
 parsePlaybackStrategy :: Text -> Either ConfigError PlaybackStrategy
 parsePlaybackStrategy value
   | value == Text.pack "random" = Right Random

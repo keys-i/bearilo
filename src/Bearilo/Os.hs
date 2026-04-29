@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP #-}
 
+-- | Pick the keyboard listener for the current OS.
 module Bearilo.Os (withKeyListener) where
 
 import Bearilo.Os.Types (OsHookError (..), RawKeyEvent)
@@ -12,6 +13,7 @@ import Bearilo.Os.Darwin (withDarwinKeyListener)
 import Bearilo.Os.Windows (withWindowsKeyListener)
 #endif
 
+-- | Run an action while the global key listener is active.
 withKeyListener :: (RawKeyEvent -> IO ()) -> IO a -> IO (Either OsHookError a)
 #if defined(linux_HOST_OS)
 withKeyListener = withLinuxKeyListener

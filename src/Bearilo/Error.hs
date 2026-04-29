@@ -1,8 +1,10 @@
+-- | Error values shared by the runtime.
 module Bearilo.Error (ConfigError (..), AppError (..), renderError) where
 
 import Bearilo.Audio.Types (AudioError)
 import Bearilo.Os.Types (OsHookError)
 
+-- | Things that can go wrong while reading config.
 data ConfigError
   = ConfigParseError String
   | ConfigPathMissing FilePath
@@ -14,6 +16,7 @@ data ConfigError
   | InvalidPlaybackStrategy String
   deriving stock (Eq, Show)
 
+-- | Top-level app errors.
 data AppError
   = AppConfigError ConfigError
   | AppAudioError AudioError
@@ -21,6 +24,7 @@ data AppError
   | AppError String
   deriving stock (Eq, Show)
 
+-- | Turn an app error into text for stderr or logs.
 renderError :: AppError -> String
 renderError err =
   case err of

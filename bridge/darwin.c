@@ -13,6 +13,14 @@ static CFMachPortRef listener_event_tap = 0;
 static CFRunLoopSourceRef listener_source = 0;
 static CFRunLoopRef listener_run_loop = 0;
 
+static int darwin_request_listen_event_access(void) {
+    if (CGPreflightListenEventAccess()) {
+        return 1;
+    }
+
+    return CGRequestListenEventAccess() ? 1 : 0;
+}
+
 static CGEventRef darwin_event_callback(
     CGEventTapProxy proxy,
     CGEventType type,
@@ -70,6 +78,12 @@ int bearilo_darwin_start(bearilo_darwin_key_callback callback, void *user_data) 
 
     listener_callback = callback;
     listener_user_data = user_data;
+
+    if (!darwin_request_listen_event_access()) {
+        listener_callback = 0;
+        listener_user_data = 0;
+        return EPERM;
+    }
 
     CGEventMask event_mask = CGEventMaskBit(kCGEventKeyDown) | CGEventMaskBit(kCGEventKeyUp);
     listener_event_tap =
