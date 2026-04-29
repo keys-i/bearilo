@@ -58,11 +58,9 @@ jobs:
             throw "MSYS2 bash was not found at $bash"
           }
 
-          & $bash -lc "pacman -S --noconfirm --needed mingw-w64-ucrt-x86_64-pkgconf mingw-w64-ucrt-x86_64-SDL2 mingw-w64-ucrt-x86_64-SDL2_mixer"
-          # SDL2main is built with stack-protector support, but Cabal's GHC/clang link probes do not add libssp automatically.
-          & $bash -lc 'for pc in /ucrt64/lib/pkgconfig/sdl2.pc /ucrt64/lib/pkgconfig/SDL2_mixer.pc; do test -f "$pc" || continue; grep -q "^Libs:.*-lssp" "$pc" || sed -i "/^Libs:/ s/$/ -lssp/" "$pc"; done'
-          "C:\msys64\ucrt64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          "PKG_CONFIG_PATH=C:\msys64\ucrt64\lib\pkgconfig" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          & $bash -lc "pacman -S --noconfirm --needed mingw-w64-clang-x86_64-pkgconf mingw-w64-clang-x86_64-gcc-libs mingw-w64-clang-x86_64-SDL2 mingw-w64-clang-x86_64-SDL2_mixer"
+          "C:\msys64\clang64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "PKG_CONFIG_PATH=C:\msys64\clang64\lib\pkgconfig" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Setup Haskell
         uses: haskell-actions/setup@v2

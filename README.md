@@ -203,7 +203,8 @@ cabal install exe:bearilo
 With GHC 9.4.1 and newer on Windows, use SDL2 packages from the MSYS2 CLANG64
 environment. Mixing `C:\msys64\mingw64` libraries with the GHCup clang/lld
 toolchain can fail while building the Haskell `sdl2` dependency with unresolved
-`__stack_chk_fail` and `__stack_chk_guard` symbols.
+`__stack_chk_fail` and `__stack_chk_guard` symbols, or during Cabal configure
+with `Missing C library: ssp`.
 
 Install the matching SDL2 libraries:
 
@@ -227,6 +228,18 @@ After changing the Cabal config, reopen the terminal and run:
 cabal clean
 cabal build all
 ```
+
+If Cabal still reports `Missing C library: ssp`, check that the tools and
+libraries Cabal sees all come from `clang64`, not `mingw64`:
+
+```sh
+where.exe pkg-config
+pkg-config --libs sdl2
+```
+
+The first command should resolve through `C:\msys64\clang64\bin` before any
+`mingw64` entry. The second command should not include `-lssp`; if it does,
+Cabal is still reading SDL2 metadata from the wrong MSYS2 environment.
 
 ## macOS Permissions
 
